@@ -41,33 +41,36 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
-            if (-not (Test-Path $deployPath)) { New-Item -ItemType Directory -Path $deployPath -Force | Out-Null }
-            if (-not (Test-Path (Join-Path $deployPath '.git'))) {
-              git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $deployPath
-              if ($LASTEXITCODE -ne 0) { throw 'git clone failed.' }
-            }
-            git -C $deployPath fetch origin --prune
-            if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
-            if (git -C $deployPath rev-parse --verify main 2>$null) {
-              git -C $deployPath checkout main
-              if ($LASTEXITCODE -ne 0) { throw 'git checkout main failed.' }
-              git -C $deployPath pull --ff-only origin main
-              if ($LASTEXITCODE -ne 0) { throw 'git pull origin main failed.' }
-            } elseif (git -C $deployPath rev-parse --verify master 2>$null) {
-              git -C $deployPath checkout master
-              if ($LASTEXITCODE -ne 0) { throw 'git checkout master failed.' }
-              git -C $deployPath pull --ff-only origin master
-              if ($LASTEXITCODE -ne 0) { throw 'git pull origin master failed.' }
-            } else {
-              git -C $deployPath checkout -b main
-              if ($LASTEXITCODE -ne 0) { throw 'git checkout -b main failed.' }
-            }
-            Write-Host \"Deployment repository ready at $deployPath\"
-            "
+            @echo off
+            setlocal enableextensions
+            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
+            if not defined DEPLOY_PATH exit /b 1
+            if not exist "%DEPLOY_PATH%" mkdir "%DEPLOY_PATH%"
+            if not exist "%DEPLOY_PATH%\.git" (
+              git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "%DEPLOY_PATH%"
+              if errorlevel 1 exit /b 1
+            )
+            git -C "%DEPLOY_PATH%" fetch origin --prune
+            if errorlevel 1 exit /b 1
+            git -C "%DEPLOY_PATH%" rev-parse --verify main >nul 2>&1
+            if not errorlevel 1 (
+              git -C "%DEPLOY_PATH%" checkout main
+              if errorlevel 1 exit /b 1
+              git -C "%DEPLOY_PATH%" pull --ff-only origin main
+              if errorlevel 1 exit /b 1
+            ) else (
+              git -C "%DEPLOY_PATH%" rev-parse --verify master >nul 2>&1
+              if not errorlevel 1 (
+                git -C "%DEPLOY_PATH%" checkout master
+                if errorlevel 1 exit /b 1
+                git -C "%DEPLOY_PATH%" pull --ff-only origin master
+                if errorlevel 1 exit /b 1
+              ) else (
+                git -C "%DEPLOY_PATH%" checkout -b main
+                if errorlevel 1 exit /b 1
+              )
+            )
+            echo Deployment repository ready at %DEPLOY_PATH%
 
       - name: Create production environment file
         uses: appleboy/ssh-action@v1.0.0
@@ -78,21 +81,19 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
-            $envContent = @'
-            PORT=${{ secrets.APP_PORT || '3005' }}
-            HOST=0.0.0.0
-            NEXT_TELEMETRY_DISABLED=1
-            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-            APP_PASSWORD=${{ secrets.APP_PASSWORD }}
-            '@
-            Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envContent -Encoding UTF8
-            if ($LASTEXITCODE -ne 0) { throw 'Writing .env.production failed.' }
-            Write-Host \"Production environment written to $deployPath\\.env.production\"
-            "
+            @echo off
+            setlocal enableextensions
+            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
+            if not defined DEPLOY_PATH exit /b 1
+            > "%DEPLOY_PATH%\.env.production" (
+              echo PORT=${{ secrets.APP_PORT || '3005' }}
+              echo HOST=0.0.0.0
+              echo NEXT_TELEMETRY_DISABLED=1
+              echo AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+              echo APP_PASSWORD=${{ secrets.APP_PASSWORD }}
+            )
+            if errorlevel 1 exit /b 1
+            echo Production environment written to %DEPLOY_PATH%\.env.production
 
       - name: Install dependencies on server
         uses: appleboy/ssh-action@v1.0.0
@@ -103,18 +104,17 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
-            if (-not (Test-Path (Join-Path $deployPath 'package.json'))) { throw \"Project files missing in deploy folder: $deployPath\" }
-            Set-Location $deployPath
+            @echo off
+            setlocal enableextensions
+            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
+            if not defined DEPLOY_PATH exit /b 1
+            if not exist "%DEPLOY_PATH%\package.json" exit /b 1
+            cd /d "%DEPLOY_PATH%"
             npm ci
-            if ($LASTEXITCODE -ne 0) { throw 'npm ci failed on server.' }
+            if errorlevel 1 exit /b 1
             npm run init-db
-            if ($LASTEXITCODE -ne 0) { throw 'npm run init-db failed on server.' }
-            Write-Host 'Server dependencies installed.'
-            "
+            if errorlevel 1 exit /b 1
+            echo Server dependencies installed.
 
       - name: Build app on server
         uses: appleboy/ssh-action@v1.0.0
@@ -125,15 +125,14 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
-            Set-Location $deployPath
+            @echo off
+            setlocal enableextensions
+            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
+            if not defined DEPLOY_PATH exit /b 1
+            cd /d "%DEPLOY_PATH%"
             npm run build
-            if ($LASTEXITCODE -ne 0) { throw 'npm run build failed on server.' }
-            Write-Host 'Production build completed on Windows server.'
-            "
+            if errorlevel 1 exit /b 1
+            echo Production build completed on Windows server.
 
       - name: Install PM2
         uses: appleboy/ssh-action@v1.0.0
@@ -144,11 +143,10 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
+            @echo off
+            setlocal enableextensions
             npm install -g pm2
-            if ($LASTEXITCODE -ne 0) { throw 'npm install -g pm2 failed.' }
-            "
+            if errorlevel 1 exit /b 1
 
       - name: Restart app with PM2
         uses: appleboy/ssh-action@v1.0.0
@@ -159,25 +157,25 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            $appName = 'peminjaman-buku'
-            $appPort = '${{ secrets.APP_PORT || '3005' }}'
-            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
+            @echo off
+            setlocal enableextensions
+            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
+            set "APP_NAME=peminjaman-buku"
+            set "APP_PORT=${{ secrets.APP_PORT || '3005' }}"
+            if not defined DEPLOY_PATH exit /b 1
 
-            if (pm2 show $appName 2>$null) {
-              pm2 delete $appName
-              if ($LASTEXITCODE -ne 0) { throw 'pm2 delete failed.' }
-            }
+            pm2 show %APP_NAME% >nul 2>&1
+            if not errorlevel 1 (
+              pm2 delete %APP_NAME%
+              if errorlevel 1 exit /b 1
+            )
 
-            Set-Location $deployPath
-            pm2 start "npm run start -- --hostname 0.0.0.0 --port $appPort" --name $appName --cwd $deployPath --watch false
-            if ($LASTEXITCODE -ne 0) { throw 'pm2 start failed.' }
+            cd /d "%DEPLOY_PATH%"
+            pm2 start "npm run start -- --hostname 0.0.0.0 --port %APP_PORT%" --name %APP_NAME% --cwd "%DEPLOY_PATH%" --watch false
+            if errorlevel 1 exit /b 1
             pm2 save
-            if ($LASTEXITCODE -ne 0) { throw 'pm2 save failed.' }
-            Write-Host \"PM2 started $appName on port $appPort\"
-            "
+            if errorlevel 1 exit /b 1
+            echo PM2 started %APP_NAME% on port %APP_PORT%
 
       - name: Verify app health
         uses: appleboy/ssh-action@v1.0.0
@@ -188,20 +186,11 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
-            $ErrorActionPreference = 'Stop'
-            $appPort = '${{ secrets.APP_PORT || '3005' }}'
-            $uri = \"http://127.0.0.1:$appPort\"
-            try {
-              $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 20
-              if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 400) {
-                throw \"Unexpected status code: $($response.StatusCode)\"
-              }
-              Write-Host \"App health check passed: $uri => $($response.StatusCode)\"
-            } catch {
-              throw \"Application health check failed at $uri\"
-            }
-            "
+            @echo off
+            setlocal enableextensions
+            set "APP_PORT=${{ secrets.APP_PORT || '3005' }}"
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:%APP_PORT%' -UseBasicParsing -TimeoutSec 20; if ($r.StatusCode -lt 200 -or $r.StatusCode -ge 400) { throw \"Unexpected status: $($r.StatusCode)\" }; Write-Host \"App health check passed: http://127.0.0.1:%APP_PORT% => $($r.StatusCode)\" } catch { throw \"Application health check failed at http://127.0.0.1:%APP_PORT%\" }"
+            if errorlevel 1 exit /b 1
 
       - name: Show app status
         uses: appleboy/ssh-action@v1.0.0
@@ -212,8 +201,7 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script_stop: true
           script: |
-            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
+            @echo off
             pm2 list
-            if ($LASTEXITCODE -ne 0) { throw 'pm2 list failed.' }
-            Write-Host 'Deployment completed successfully.'
-            "
+            if errorlevel 1 exit /b 1
+            echo Deployment completed successfully.
