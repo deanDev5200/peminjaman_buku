@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
 
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { BookOpen, Plus, Search, Upload, Download } from 'lucide-react';
+import { BookOpen, Plus, Search, Upload, Download, LogOut } from 'lucide-react';
 
 const getCurrentAcademicYear = () => {
   const today = new Date();
@@ -40,6 +41,7 @@ const getAcademicYearOptions = () => {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [editingBorrowing, setEditingBorrowing] = useState<Borrowing | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -235,6 +237,17 @@ export default function Home() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  };
+
   const handleMonthlyReportExport = async () => {
     try {
       const response = await fetch(`/api/excel/export?type=monthly&academicYear=${encodeURIComponent(reportAcademicYear)}`);
@@ -264,18 +277,25 @@ export default function Home() {
     <div className="min-h-screen bg-muted/40 py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <BookOpen className="h-5 w-5" />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Sistem Peminjaman Buku
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Kelola peminjaman buku perpustakaan dengan mudah
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Sistem Peminjaman Buku
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola peminjaman buku perpustakaan dengan mudah
-            </p>
-          </div>
+
+          <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
 
         {/* Search and Actions */}
