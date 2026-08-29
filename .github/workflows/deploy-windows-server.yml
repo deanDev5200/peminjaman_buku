@@ -39,19 +39,23 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
             if (!(Test-Path $deployPath)) {
               New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
             }
             if (!(Test-Path (Join-Path $deployPath '.git'))) {
               git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $deployPath
+              if ($LASTEXITCODE -ne 0) { throw 'git clone failed.' }
             }
             Write-Host \"Deployment path ready: $deployPath\"
             if (Test-Path (Join-Path $deployPath '.git')) {
               git -C $deployPath status -sb
+              if ($LASTEXITCODE -ne 0) { throw 'git status failed.' }
             }
             "
 
@@ -62,25 +66,61 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            Set-Location $deployPath
+            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
+            if (-not (Test-Path $deployPath)) { throw \"Deployment path does not exist: $deployPath\" }
+            if (-not (Test-Path (Join-Path $deployPath '.git'))) { throw \"Repository is not initialized at: $deployPath\" }
             Write-Host \"Fetching latest repository state...\"
-            git fetch origin --prune
-            if (git rev-parse --verify main 2>$null) {
-              git checkout main
-              git pull origin main
-            } elseif (git rev-parse --verify master 2>$null) {
-              git checkout master
-              git pull origin master
+            git -C $deployPath fetch origin --prune
+            if ($LASTEXITCODE -ne 0) { throw 'git fetch failed.' }
+            if (git -C $deployPath rev-parse --verify main 2>$null) {
+              git -C $deployPath checkout main
+              if ($LASTEXITCODE -ne 0) { throw 'git checkout main failed.' }
+              git -C $deployPath pull --ff-only origin main
+              if ($LASTEXITCODE -ne 0) { throw 'git pull origin main failed.' }
+            } elseif (git -C $deployPath rev-parse --verify master 2>$null) {
+              git -C $deployPath checkout master
+              if ($LASTEXITCODE -ne 0) { throw 'git checkout master failed.' }
+              git -C $deployPath pull --ff-only origin master
+              if ($LASTEXITCODE -ne 0) { throw 'git pull origin master failed.' }
             } else {
-              git checkout -b main
+              git -C $deployPath checkout -b main
+              if ($LASTEXITCODE -ne 0) { throw 'git checkout -b main failed.' }
             }
             Write-Host \"Current branch and status:\"
-            git status -sb
-            git branch --show-current
+            git -C $deployPath status -sb
+            if ($LASTEXITCODE -ne 0) { throw 'git status failed.' }
+            git -C $deployPath branch --show-current
+            if ($LASTEXITCODE -ne 0) { throw 'git branch --show-current failed.' }
+            "
+
+      - name: Verify deployment repository state
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
+            if (-not (Test-Path $deployPath)) { throw \"Deployment path missing: $deployPath\" }
+            if (-not (Test-Path (Join-Path $deployPath '.git'))) { throw \"Git repository missing in deployment path: $deployPath\" }
+            if (-not (Test-Path (Join-Path $deployPath 'package.json'))) { throw \"Project files missing in deploy folder: $deployPath\" }
+            $repoRoot = git -C $deployPath rev-parse --show-toplevel
+            if ($LASTEXITCODE -ne 0) { throw 'git rev-parse --show-toplevel failed.' }
+            $latestCommit = git -C $deployPath log -1 --oneline
+            if ($LASTEXITCODE -ne 0) { throw 'git log -1 --oneline failed.' }
+            Write-Host \"Repo root: $repoRoot\"
+            Write-Host \"Latest commit: $latestCommit\"
+            Write-Host 'Deployment verified successfully.'
             "
 
       - name: Create production environment file
@@ -111,13 +151,17 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
             Set-Location $deployPath
             npm ci
+            if ($LASTEXITCODE -ne 0) { throw 'npm ci failed on server.' }
             npm run init-db
+            if ($LASTEXITCODE -ne 0) { throw 'npm run init-db failed on server.' }
             "
 
       - name: Install PM2
@@ -127,10 +171,12 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             npm install -g pm2
+            if ($LASTEXITCODE -ne 0) { throw 'npm install -g pm2 failed.' }
             "
 
       - name: Restart app with PM2
@@ -140,19 +186,24 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             $appName = 'peminjaman-buku'
+            if (-not $deployPath) { throw 'WINDOWS_DEPLOY_PATH is empty.' }
 
             if (pm2 show $appName 2>$null) {
               pm2 delete $appName
+              if ($LASTEXITCODE -ne 0) { throw 'pm2 delete failed.' }
             }
 
             Set-Location $deployPath
             pm2 start \"npm run start\" --name $appName --cwd $deployPath --watch false
+            if ($LASTEXITCODE -ne 0) { throw 'pm2 start failed.' }
             pm2 save
+            if ($LASTEXITCODE -ne 0) { throw 'pm2 save failed.' }
             "
 
       - name: Show app status
@@ -162,8 +213,10 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script_stop: true
           script: |
             "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             pm2 list
+            if ($LASTEXITCODE -ne 0) { throw 'pm2 list failed.' }
             Write-Host 'Deployment completed successfully.'
             "
