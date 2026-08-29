@@ -82,6 +82,12 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       return;
     }
 
+    const nis = parseInt(formData.nis, 10);
+    if (nis < 1000 || nis > 4999) {
+      alert('NIS tidak valid!');
+      return;
+    }
+
     onSubmit({
       ...formData,
       nis: parseInt(formData.nis),
