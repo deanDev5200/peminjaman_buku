@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
+
+type BorrowingPayload = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
 import { BorrowingTable } from '@/components/borrowing-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,12 +47,7 @@ export default function Home() {
   const [reportAcademicYear, setReportAcademicYear] = useState(getCurrentAcademicYear());
   const [loading, setLoading] = useState(false);
 
-  // Fetch borrowings on mount and when search changes
-  useEffect(() => {
-    fetchBorrowings();
-  }, [searchTerm]);
-
-  const fetchBorrowings = async () => {
+  const fetchBorrowings = useCallback(async () => {
     try {
       setLoading(true);
       const url = searchTerm 
@@ -64,9 +61,18 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
 
-  const handleCreate = async (data: any) => {
+  // Fetch borrowings on mount and when search changes
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void fetchBorrowings();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchBorrowings]);
+
+  const handleCreate = async (data: BorrowingPayload) => {
     try {
       const response = await fetch('/api/borrowings', {
         method: 'POST',
@@ -89,7 +95,7 @@ export default function Home() {
     }
   };
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (data: BorrowingPayload) => {
     if (!editingBorrowing?.id) return;
     
     try {

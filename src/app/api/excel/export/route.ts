@@ -2,19 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { dbOperations } from '@/lib/db';
 
-const REPORT_HEADERS = [
-  'Nama',
-  'NIS',
-  'Kelas',
-  'Nama Buku',
-  'Jenis Buku',
-  'Kode Buku',
-  'Jumlah',
-  'Tanggal Pinjam',
-  'Tanggal Kembali',
-  'Status'
-];
-
 const COL_WIDTHS = [
   { wch: 20 },
   { wch: 10 },
@@ -94,19 +81,6 @@ function getBorrowingDateParts(borrowing: Awaited<ReturnType<typeof dbOperations
   };
 }
 
-function isInAcademicYear(borrowing: Awaited<ReturnType<typeof dbOperations.getAllBorrowings>>[number], academicYear: string) {
-  const dateParts = getBorrowingDateParts(borrowing);
-  const [startYearStr] = academicYear.split('/');
-  const startYear = Number(startYearStr);
-
-  if (!dateParts || !Number.isFinite(startYear)) {
-    return false;
-  }
-
-  const { month, year } = dateParts;
-  return (year === startYear && month >= 7) || (year === startYear + 1 && month <= 6);
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -118,7 +92,7 @@ export async function GET(request: NextRequest) {
       const workbook = XLSX.utils.book_new();
       const academicMonths = getAcademicYearMonths(academicYear);
 
-      academicMonths.forEach(({ label, sheetName, month, year }) => {
+      academicMonths.forEach(({ sheetName, month, year }) => {
         const matchingBorrowings = borrowings.filter((borrowing) => {
           const dateParts = getBorrowingDateParts(borrowing);
           if (!dateParts) return false;

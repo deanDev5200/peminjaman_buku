@@ -68,7 +68,6 @@ export const dbOperations = {
   updateBorrowing: (id: number, borrowing: Partial<Borrowing>): void => {
     const fields = Object.keys(borrowing).filter(key => key !== 'id').join(', ');
     const values = Object.values(borrowing).filter((_, index) => Object.keys(borrowing)[index] !== 'id');
-    const placeholders = values.map(() => '?').join(', ');
     
     const stmt = db.prepare(`
       UPDATE borrowings 

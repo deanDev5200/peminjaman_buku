@@ -27,7 +27,7 @@ export async function PUT(
     }
 
     // Recalculate return date if book type or borrow date changes
-    let updateData = { ...body };
+    const updateData = { ...body };
     if (body.jenis_buku || body.tanggal_pinjam) {
       const jenis_buku = body.jenis_buku || existing.jenis_buku;
       const tanggal_pinjam = body.tanggal_pinjam || existing.tanggal_pinjam;

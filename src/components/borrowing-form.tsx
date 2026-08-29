@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Borrowing } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,9 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { calculateReturnDate, getCurrentDate } from '@/lib/date-utils';
 
+type BorrowingFormValue = {
+  nama: string;
+  nis: string;
+  kelas: string;
+  nama_buku: string;
+  jenis_buku: string;
+  kode_buku: string;
+  jumlah: string;
+  tanggal_pinjam: string;
+};
+
+type BorrowingSubmitData = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
+
 interface BorrowingFormProps {
-  onSubmit: (data: any) => void;
-  initialData?: any;
+  onSubmit: (data: BorrowingSubmitData) => void;
+  initialData?: Partial<BorrowingSubmitData>;
   onCancel?: () => void;
   isEdit?: boolean;
 }
@@ -37,14 +51,14 @@ const CLASS_OPTIONS = [
 ];
 
 export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false }: BorrowingFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BorrowingFormValue>({
     nama: initialData?.nama || '',
-    nis: initialData?.nis || '',
+    nis: initialData?.nis !== undefined ? String(initialData.nis) : '',
     kelas: initialData?.kelas || '',
     nama_buku: initialData?.nama_buku || '',
     jenis_buku: initialData?.jenis_buku || '',
     kode_buku: initialData?.kode_buku || '',
-    jumlah: initialData?.jumlah || '',
+    jumlah: initialData?.jumlah !== undefined ? String(initialData.jumlah) : '',
     tanggal_pinjam: initialData?.tanggal_pinjam || getCurrentDate()
   });
 
@@ -52,7 +66,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
     initialData?.tanggal_kembali || calculateReturnDate(formData.tanggal_pinjam, formData.jenis_buku)
   );
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = <K extends keyof BorrowingFormValue>(field: K, value: BorrowingFormValue[K]) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
 

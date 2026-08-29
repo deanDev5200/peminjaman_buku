@@ -51,7 +51,7 @@ export const formatDate = (dateString: string): string => {
     const date = parse(dateString, 'dd/MM/yyyy', new Date());
     if (!isValid(date)) return dateString;
     return format(date, 'dd MMMM yyyy');
-  } catch (error) {
+  } catch {
     return dateString;
   }
 };

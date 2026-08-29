@@ -21,14 +21,14 @@ export async function POST(request: NextRequest) {
     const worksheet = workbook.Sheets[sheetName];
     
     // Convert to JSON
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
     
     if (jsonData.length < 2) {
       return NextResponse.json({ error: 'File is empty or invalid' }, { status: 400 });
     }
 
     // Extract headers from first row
-    const headers = jsonData[0].map((h: any) => h.toString().trim());
+    const headers = jsonData[0].map((h: unknown) => String(h ?? '').trim());
     const expectedHeaders = [
       'Nama', 'NIS', 'Kelas', 'Nama Buku', 'Jenis Buku', 'Kode Buku',
       'Jumlah', 'Tanggal Pinjam', 'Tanggal Kembali', 'Status'
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     let errors = 0;
 
     for (let i = 1; i < jsonData.length; i++) {
-      const row = jsonData[i];
+      const row = jsonData[i] as unknown[];
       if (!row || row.length === 0) continue;
 
       try {

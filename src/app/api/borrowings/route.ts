@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbOperations } from '@/lib/db';
-import { calculateReturnDate, getCurrentDate } from '@/lib/date-utils';
+import { calculateReturnDate } from '@/lib/date-utils';
 
 // GET all borrowings
 export async function GET(request: NextRequest) {
