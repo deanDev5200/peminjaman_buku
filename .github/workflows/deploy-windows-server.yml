@@ -40,7 +40,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             if (!(Test-Path $deployPath)) {
@@ -59,7 +59,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             Set-Location $deployPath
@@ -83,7 +83,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             $envContent = @'
@@ -104,7 +104,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             Set-Location $deployPath
@@ -120,7 +120,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             npm install -g pm2
             "
@@ -133,7 +133,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             $appName = 'peminjaman-buku'
@@ -155,7 +155,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "
             pm2 list
             Write-Host 'Deployment completed successfully.'
             "
