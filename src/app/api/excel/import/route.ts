@@ -3,12 +3,25 @@ import * as XLSX from 'xlsx';
 import { dbOperations } from '@/lib/db';
 import { calculateReturnDate } from '@/lib/date-utils';
 
+function toStringValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).trim();
+}
+
+function toNumberValue(value: unknown): number {
+  const parsed = Number(toStringValue(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file');
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
@@ -52,16 +65,16 @@ export async function POST(request: NextRequest) {
 
       try {
         const borrowing = {
-          nama: row[0]?.toString() || '',
-          nis: parseInt(row[1]) || 0,
-          kelas: row[2]?.toString() || '',
-          nama_buku: row[3]?.toString() || '',
-          jenis_buku: row[4]?.toString() || '',
-          kode_buku: row[5]?.toString() || '',
-          jumlah: parseInt(row[6]) || 0,
-          tanggal_pinjam: row[7]?.toString() || '',
-          tanggal_kembali: row[8]?.toString() || '',
-          status: row[9]?.toString() || 'Dipinjam'
+          nama: toStringValue(row[0]),
+          nis: toNumberValue(row[1]),
+          kelas: toStringValue(row[2]),
+          nama_buku: toStringValue(row[3]),
+          jenis_buku: toStringValue(row[4]),
+          kode_buku: toStringValue(row[5]),
+          jumlah: toNumberValue(row[6]),
+          tanggal_pinjam: toStringValue(row[7]),
+          tanggal_kembali: toStringValue(row[8]),
+          status: toStringValue(row[9]) || 'Dipinjam'
         };
 
         // Validate required fields

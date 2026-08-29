@@ -1,10 +1,10 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
@@ -90,5 +90,13 @@ export default function LoginPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-100 p-4"><div className="text-sm text-slate-600">Memuat halaman login...</div></main>}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { BookOpen, Plus, Search, Upload, Download, LogOut } from 'lucide-react';
+import { BookOpen, Plus, Search, Upload, Download, LogOut, Shield } from 'lucide-react';
 
 const getCurrentAcademicYear = () => {
   const today = new Date();
@@ -48,6 +48,12 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [reportAcademicYear, setReportAcademicYear] = useState(getCurrentAcademicYear());
   const [loading, setLoading] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const fetchBorrowings = useCallback(async () => {
     try {
@@ -273,6 +279,58 @@ export default function Home() {
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Semua kolom harus diisi.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password baru minimal 6 karakter.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError('');
+
+    try {
+      const response = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setPasswordError(result.error || 'Gagal mengubah password.');
+        return;
+      }
+
+      setIsPasswordDialogOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      alert('Password berhasil diubah. Silakan login kembali dengan password baru.');
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordError('Gagal mengubah password.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/40 py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -292,10 +350,16 @@ export default function Home() {
             </div>
           </div>
 
-          <Button variant="outline" onClick={handleLogout} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="gap-2">
+              <Shield className="h-4 w-4" />
+              Ganti Password
+            </Button>
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Search and Actions */}
@@ -371,6 +435,58 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ubah Password Aplikasi</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Password saat ini</label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  placeholder="Masukkan password lama"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Password baru</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Minimal 6 karakter"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Konfirmasi password baru</label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Ketik ulang password baru"
+                />
+              </div>
+
+              {passwordError ? (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {passwordError}
+                </div>
+              ) : null}
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handlePasswordChange} disabled={passwordLoading}>
+                  {passwordLoading ? 'Menyimpan...' : 'Simpan Password'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Table */}
         <Card className="shadow-sm">

@@ -102,11 +102,19 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       return;
     }
 
+    const status = initialData?.status ?? 'Dipinjam';
+
     onSubmit({
-      ...formData,
-      nis: parseInt(formData.nis),
-      jumlah: parseInt(formData.jumlah),
-      tanggal_kembali: returnDate
+      nama: formData.nama,
+      nis: Number.parseInt(formData.nis, 10),
+      kelas: formData.kelas,
+      nama_buku: formData.nama_buku,
+      jenis_buku: formData.jenis_buku,
+      kode_buku: formData.kode_buku,
+      jumlah: Number.parseInt(formData.jumlah, 10),
+      tanggal_pinjam: formData.tanggal_pinjam,
+      tanggal_kembali: returnDate,
+      status,
     });
   };
 
@@ -156,8 +164,8 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
           <div className="space-y-2">
             <Label htmlFor="kelas">Kelas</Label>
             <Select
-              value={formData.kelas}
-              onValueChange={(value) => handleChange('kelas', value)}
+              value={formData.kelas || undefined}
+              onValueChange={(value) => handleChange('kelas', value ?? '')}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Pilih kelas" />
@@ -186,8 +194,8 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             <div className="space-y-2">
               <Label htmlFor="jenis_buku">Jenis Buku</Label>
               <Select
-                value={formData.jenis_buku}
-                onValueChange={(value) => handleChange('jenis_buku', value)}
+                value={formData.jenis_buku || undefined}
+                onValueChange={(value) => handleChange('jenis_buku', value ?? '')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih jenis buku" />
@@ -226,7 +234,14 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
                 id="tanggal_pinjam"
                 type="date"
                 value={formData.tanggal_pinjam.split('/').reverse().join('-')}
-                onChange={(e) => handleChange('tanggal_pinjam', e.target.value.split('-').reverse().join('/'))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    return;
+                  }
+
+                  handleChange('tanggal_pinjam', value.split('-').reverse().join('/'));
+                }}
               />
             </div>
           </div>

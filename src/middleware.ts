@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAuthenticated = await verifySessionToken(request.cookies.get(AUTH_COOKIE_NAME)?.value);
+  const authSession = await verifySessionToken(request.cookies.get(AUTH_COOKIE_NAME)?.value);
+  const isAuthenticated = Boolean(authSession);
 
   const isPublicApiRoute = pathname === '/api/auth/login' || pathname === '/api/auth/logout';
 

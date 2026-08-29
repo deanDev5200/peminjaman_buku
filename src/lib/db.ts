@@ -29,6 +29,12 @@ export interface Borrowing {
   updated_at?: string;
 }
 
+export interface AppSetting {
+  key: string;
+  value: string;
+  updated_at?: string;
+}
+
 // Database operations
 export const dbOperations = {
   // Get all borrowings
@@ -111,6 +117,21 @@ export const dbOperations = {
       ORDER BY tanggal_kembali ASC
     `);
     return stmt.all() as Borrowing[];
+  },
+
+  getSetting: (key: string): string | null => {
+    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+    const row = stmt.get(key) as { value?: string } | undefined;
+    return row?.value ?? null;
+  },
+
+  setSetting: (key: string, value: string): void => {
+    const stmt = db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `);
+    stmt.run(key, value);
   }
 };
 

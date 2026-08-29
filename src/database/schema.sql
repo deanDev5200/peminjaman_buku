@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS borrowings (
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create index for faster search by name and NIS
 CREATE INDEX IF NOT EXISTS idx_nama ON borrowings(nama);
 CREATE INDEX IF NOT EXISTS idx_nis ON borrowings(nis);

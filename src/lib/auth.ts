@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const AUTH_COOKIE_NAME = 'library_session';
-const SESSION_VALUE = 'authenticated';
+const SESSION_TTL_MS = 60 * 60 * 8 * 1000;
+
+export type AuthSession = {
+  authenticated: boolean;
+  user: 'admin';
+  issuedAt: number;
+  expiresAt: number;
+};
 
 export function getAuthSecret(): string {
   const secret = process.env.AUTH_SECRET?.trim();
@@ -13,14 +20,26 @@ export function getAuthSecret(): string {
   return secret;
 }
 
-export function getAppPassword(): string {
-  const password = process.env.APP_PASSWORD?.trim();
+function encodeBase64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
 
-  if (!password) {
-    throw new Error('APP_PASSWORD is not configured. Set it in .env.local or .env.production.');
-  }
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
 
-  return password;
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeBase64Url(value: string): string {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 async function createSignature(value: string): Promise<string> {
@@ -40,30 +59,41 @@ async function createSignature(value: string): Promise<string> {
     .join('');
 }
 
-export async function createSessionToken(): Promise<string> {
-  const signature = await createSignature(SESSION_VALUE);
-  return `${SESSION_VALUE}.${signature}`;
+export async function createSessionToken(session: AuthSession = {
+  authenticated: true,
+  user: 'admin',
+  issuedAt: Date.now(),
+  expiresAt: Date.now() + SESSION_TTL_MS,
+}): Promise<string> {
+  const payload = encodeBase64Url(JSON.stringify(session));
+  const signature = await createSignature(payload);
+
+  return `${payload}.${signature}`;
 }
 
-export async function verifySessionToken(token?: string): Promise<boolean> {
+export async function verifySessionToken(token?: string): Promise<AuthSession | null> {
   if (!token) {
-    return false;
+    return null;
   }
 
-  const [value, signature] = token.split('.');
-
-  if (!value || !signature) {
-    return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) {
+    return null;
   }
 
-  const expected = await createSignature(value);
+  const [payload, signature] = parts;
+  if (!payload || !signature) {
+    return null;
+  }
+
+  const expected = await createSignature(payload);
 
   try {
     const actual = signature.toLowerCase();
     const expectedLower = expected.toLowerCase();
 
     if (actual.length !== expectedLower.length) {
-      return false;
+      return null;
     }
 
     let diff = 0;
@@ -71,19 +101,46 @@ export async function verifySessionToken(token?: string): Promise<boolean> {
       diff |= actual.charCodeAt(index) ^ expectedLower.charCodeAt(index);
     }
 
-    return diff === 0;
+    if (diff !== 0) {
+      return null;
+    }
+
+    const decoded = JSON.parse(decodeBase64Url(payload)) as Partial<AuthSession>;
+
+    if (!decoded.authenticated || decoded.user !== 'admin') {
+      return null;
+    }
+
+    const now = Date.now();
+    if (typeof decoded.expiresAt === 'number' && decoded.expiresAt <= now) {
+      return null;
+    }
+
+    return {
+      authenticated: true,
+      user: 'admin',
+      issuedAt: typeof decoded.issuedAt === 'number' ? decoded.issuedAt : now,
+      expiresAt: typeof decoded.expiresAt === 'number' ? decoded.expiresAt : now + SESSION_TTL_MS,
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
 export async function setAuthCookie(response: NextResponse): Promise<NextResponse> {
-  response.cookies.set(AUTH_COOKIE_NAME, await createSessionToken(), {
+  const session: AuthSession = {
+    authenticated: true,
+    user: 'admin',
+    issuedAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL_MS,
+  };
+
+  response.cookies.set(AUTH_COOKIE_NAME, await createSessionToken(session), {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 8,
+    maxAge: Math.floor(SESSION_TTL_MS / 1000),
   });
 
   return response;

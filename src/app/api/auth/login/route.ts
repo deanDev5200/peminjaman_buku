@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAppPassword, setAuthCookie } from '@/lib/auth';
+import { setAuthCookie } from '@/lib/auth';
+import { getStoredPassword } from '@/lib/password-store';
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => ({}))) as { password?: string };
     const submittedPassword = body.password ?? '';
 
-    if (submittedPassword !== getAppPassword()) {
+    if (submittedPassword !== getStoredPassword()) {
       return NextResponse.json({ error: 'Password salah' }, { status: 401 });
     }
 
