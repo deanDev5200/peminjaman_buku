@@ -49,6 +49,10 @@ jobs:
             if (!(Test-Path (Join-Path $deployPath '.git'))) {
               git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $deployPath
             }
+            Write-Host \"Deployment path ready: $deployPath\"
+            if (Test-Path (Join-Path $deployPath '.git')) {
+              git -C $deployPath status -sb
+            }
             "
 
       - name: Pull latest code from GitHub
@@ -63,6 +67,7 @@ jobs:
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             Set-Location $deployPath
+            Write-Host \"Fetching latest repository state...\"
             git fetch origin --prune
             if (git rev-parse --verify main 2>$null) {
               git checkout main
@@ -73,6 +78,9 @@ jobs:
             } else {
               git checkout -b main
             }
+            Write-Host \"Current branch and status:\"
+            git status -sb
+            git branch --show-current
             "
 
       - name: Create production environment file
