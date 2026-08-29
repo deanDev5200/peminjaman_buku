@@ -32,45 +32,41 @@ jobs:
           CI: true
         run: npm run build
 
-      - name: Ensure deployment repo exists
+      - name: Setup deployment directory
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.WINDOWS_SERVER_HOST }}
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
-            if not defined DEPLOY_PATH exit /b 1
-            if not exist "%DEPLOY_PATH%" mkdir "%DEPLOY_PATH%"
-            if not exist "%DEPLOY_PATH%\.git" (
-              git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "%DEPLOY_PATH%"
-              if errorlevel 1 exit /b 1
-            )
-            git -C "%DEPLOY_PATH%" fetch origin --prune
-            if errorlevel 1 exit /b 1
-            git -C "%DEPLOY_PATH%" rev-parse --verify main >nul 2>&1
-            if not errorlevel 1 (
-              git -C "%DEPLOY_PATH%" checkout main
-              if errorlevel 1 exit /b 1
-              git -C "%DEPLOY_PATH%" pull --ff-only origin main
-              if errorlevel 1 exit /b 1
-            ) else (
-              git -C "%DEPLOY_PATH%" rev-parse --verify master >nul 2>&1
-              if not errorlevel 1 (
-                git -C "%DEPLOY_PATH%" checkout master
-                if errorlevel 1 exit /b 1
-                git -C "%DEPLOY_PATH%" pull --ff-only origin master
-                if errorlevel 1 exit /b 1
-              ) else (
-                git -C "%DEPLOY_PATH%" checkout -b main
-                if errorlevel 1 exit /b 1
-              )
-            )
-            echo Deployment repository ready at %DEPLOY_PATH%
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (!(Test-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}')) { New-Item -ItemType Directory -Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}' -Force; cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git . }; Write-Host 'Deployment directory ready'"
+
+      - name: Install PM2 globally
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "npm install -g pm2"
+
+      - name: Stop application and backup
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; pm2 stop peminjaman-buku 2>$null; pm2 delete peminjaman-buku 2>$null; if (Test-Path 'package.json') { $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; Compress-Archive -Path * -DestinationPath \"backup_$timestamp.zip\" -Force }"
+
+      - name: Pull latest changes
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; git fetch origin --prune; git checkout main; git pull --ff-only origin main"
 
       - name: Create production environment file
         uses: appleboy/ssh-action@v1.0.0
@@ -79,74 +75,16 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
-            if not defined DEPLOY_PATH exit /b 1
-            > "%DEPLOY_PATH%\.env.production" (
-              echo PORT=${{ secrets.APP_PORT || '3005' }}
-              echo HOST=0.0.0.0
-              echo NEXT_TELEMETRY_DISABLED=1
-              echo AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-              echo APP_PASSWORD=${{ secrets.APP_PASSWORD }}
-            )
-            if errorlevel 1 exit /b 1
-            echo Production environment written to %DEPLOY_PATH%\.env.production
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $envContent = @' PORT=${{ secrets.APP_PORT || '3005' }} HOST=0.0.0.0 NEXT_TELEMETRY_DISABLED=1 AUTH_SECRET=${{ secrets.AUTH_SECRET }} APP_PASSWORD=${{ secrets.APP_PASSWORD }} '@; Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envContent -Encoding UTF8; Write-Host 'Production env written'"
 
-      - name: Install dependencies on server
+      - name: Install dependencies and build on server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.WINDOWS_SERVER_HOST }}
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
-            if not defined DEPLOY_PATH exit /b 1
-            if not exist "%DEPLOY_PATH%\package.json" exit /b 1
-            cd /d "%DEPLOY_PATH%"
-            npm ci
-            if errorlevel 1 exit /b 1
-            npm run init-db
-            if errorlevel 1 exit /b 1
-            echo Server dependencies installed.
-
-      - name: Build app on server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.WINDOWS_SERVER_HOST }}
-          username: ${{ secrets.WINDOWS_SERVER_USER }}
-          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
-            if not defined DEPLOY_PATH exit /b 1
-            cd /d "%DEPLOY_PATH%"
-            npm run build
-            if errorlevel 1 exit /b 1
-            echo Production build completed on Windows server.
-
-      - name: Install PM2
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.WINDOWS_SERVER_HOST }}
-          username: ${{ secrets.WINDOWS_SERVER_USER }}
-          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            npm install -g pm2
-            if errorlevel 1 exit /b 1
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; npm ci; npm run init-db; npm run build; Write-Host 'Server dependencies and build completed'"
 
       - name: Restart app with PM2
         uses: appleboy/ssh-action@v1.0.0
@@ -155,42 +93,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "DEPLOY_PATH=${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}"
-            set "APP_NAME=peminjaman-buku"
-            set "APP_PORT=${{ secrets.APP_PORT || '3005' }}"
-            if not defined DEPLOY_PATH exit /b 1
-
-            pm2 show %APP_NAME% >nul 2>&1
-            if not errorlevel 1 (
-              pm2 delete %APP_NAME%
-              if errorlevel 1 exit /b 1
-            )
-
-            cd /d "%DEPLOY_PATH%"
-            pm2 start "npm run start -- --hostname 0.0.0.0 --port %APP_PORT%" --name %APP_NAME% --cwd "%DEPLOY_PATH%" --watch false
-            if errorlevel 1 exit /b 1
-            pm2 save
-            if errorlevel 1 exit /b 1
-            echo PM2 started %APP_NAME% on port %APP_PORT%
-
-      - name: Verify app health
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.WINDOWS_SERVER_HOST }}
-          username: ${{ secrets.WINDOWS_SERVER_USER }}
-          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            setlocal enableextensions
-            set "APP_PORT=${{ secrets.APP_PORT || '3005' }}"
-            powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:%APP_PORT%' -UseBasicParsing -TimeoutSec 20; if ($r.StatusCode -lt 200 -or $r.StatusCode -ge 400) { throw \"Unexpected status: $($r.StatusCode)\" }; Write-Host \"App health check passed: http://127.0.0.1:%APP_PORT% => $($r.StatusCode)\" } catch { throw \"Application health check failed at http://127.0.0.1:%APP_PORT%\" }"
-            if errorlevel 1 exit /b 1
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; pm2 start \"npm run start -- --hostname 0.0.0.0 --port ${{ secrets.APP_PORT || '3005' }}\" --name peminjaman-buku --cwd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}' --watch false; pm2 save; Write-Host 'Deployment completed successfully'"
 
       - name: Show app status
         uses: appleboy/ssh-action@v1.0.0
@@ -199,9 +102,4 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script_stop: true
-          script: |
-            @echo off
-            pm2 list
-            if errorlevel 1 exit /b 1
-            echo Deployment completed successfully.
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "pm2 list"
