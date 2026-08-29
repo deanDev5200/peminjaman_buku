@@ -38,7 +38,7 @@ npm install
 
 ### Set up the database
 
-This project uses a local SQLite file that is **not** committed to the repo. Create it and load the schema with:
+This project uses a local SQLite database file that is **not** committed to the repo. Create it and load the schema with:
 
 ```bash
 npm run init-db
@@ -46,19 +46,47 @@ npm run init-db
 
 This creates `src/database/library.db` from `src/database/schema.sql`. The file is gitignored, so each environment (yours, a teammate's, production) has its own local database.
 
+> If the database is missing or empty, create it first with the command above before starting the app.
+
+### Configure environment variables
+
+This project supports a local environment override file so the app can run on a custom port without editing code.
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit `.env.local` if needed, for example:
+
+```env
+PORT=3005
+HOST=0.0.0.0
+NEXT_TELEMETRY_DISABLED=1
+```
+
 ### Run the dev server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open the app in your browser, usually at:
+
+- [http://localhost:3000](http://localhost:3000)
+- or your custom port, such as [http://localhost:3005](http://localhost:3005)
+
+### Production build
+
+```bash
+npm run build
+npm run start
+```
 
 ## Available scripts
 
 | Script | Description |
 | --- | --- |
-| `npm run dev` | Start the development server |
+| `npm run dev` | Start the development server with `.env.local` port overrides applied |
 | `npm run build` | Build for production |
 | `npm run start` | Run the production build |
 | `npm run lint` | Run ESLint |
