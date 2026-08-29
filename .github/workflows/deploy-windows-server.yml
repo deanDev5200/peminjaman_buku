@@ -40,6 +40,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             if (!(Test-Path $deployPath)) {
@@ -48,6 +49,7 @@ jobs:
             if (!(Test-Path (Join-Path $deployPath '.git'))) {
               git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $deployPath
             }
+            "
 
       - name: Pull latest code from GitHub
         uses: appleboy/ssh-action@v1.0.0
@@ -57,6 +59,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             Set-Location $deployPath
@@ -70,6 +73,7 @@ jobs:
             } else {
               git checkout -b main
             }
+            "
 
       - name: Create production environment file
         uses: appleboy/ssh-action@v1.0.0
@@ -79,16 +83,18 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
-            $envContent = @"
+            $envContent = @'
             PORT=${{ secrets.APP_PORT || '3005' }}
             HOST=0.0.0.0
             NEXT_TELEMETRY_DISABLED=1
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             APP_PASSWORD=${{ secrets.APP_PASSWORD }}
-            "@
+            '@
             Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envContent -Encoding UTF8
+            "
 
       - name: Install dependencies on server
         uses: appleboy/ssh-action@v1.0.0
@@ -98,11 +104,13 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             Set-Location $deployPath
             npm ci
             npm run init-db
+            "
 
       - name: Install PM2
         uses: appleboy/ssh-action@v1.0.0
@@ -112,8 +120,10 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             npm install -g pm2
+            "
 
       - name: Restart app with PM2
         uses: appleboy/ssh-action@v1.0.0
@@ -123,6 +133,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             $ErrorActionPreference = 'Stop'
             $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
             $appName = 'peminjaman-buku'
@@ -132,8 +143,9 @@ jobs:
             }
 
             Set-Location $deployPath
-            pm2 start "npm run start" --name $appName --cwd $deployPath --watch false
+            pm2 start \"npm run start\" --name $appName --cwd $deployPath --watch false
             pm2 save
+            "
 
       - name: Show app status
         uses: appleboy/ssh-action@v1.0.0
@@ -143,5 +155,7 @@ jobs:
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "
             pm2 list
-            Write-Host "Deployment completed successfully."
+            Write-Host 'Deployment completed successfully.'
+            "
