@@ -75,14 +75,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: >-
-            C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $envContent = @'
-            PORT=${{ secrets.APP_PORT || '3005' }}
-            HOST=0.0.0.0
-            NEXT_TELEMETRY_DISABLED=1
-            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-            APP_PASSWORD=${{ secrets.APP_PASSWORD }}
-            '@; Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envContent -Encoding UTF8; Write-Host 'Production env written'"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $envLines = @('PORT=${{ secrets.APP_PORT || '3005' }}', 'HOST=0.0.0.0', 'NEXT_TELEMETRY_DISABLED=1', 'AUTH_SECRET=${{ secrets.AUTH_SECRET }}', 'APP_PASSWORD=${{ secrets.APP_PASSWORD }}'); Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envLines -Encoding UTF8; Write-Host 'Production env written'"
 
       - name: Install dependencies and build on server
         uses: appleboy/ssh-action@v1.0.0
