@@ -1,0 +1,142 @@
+name: Deploy to Windows Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Ensure deployment folder exists
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            if (!(Test-Path $deployPath)) {
+              New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+            }
+            if (!(Test-Path (Join-Path $deployPath '.git'))) {
+              git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $deployPath
+            }
+
+      - name: Pull latest code from GitHub
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            Set-Location $deployPath
+            git fetch origin --prune
+            if (git rev-parse --verify main 2>$null) {
+              git checkout main
+              git pull origin main
+            } elseif (git rev-parse --verify master 2>$null) {
+              git checkout master
+              git pull origin master
+            } else {
+              git checkout -b main
+            }
+
+      - name: Create production environment file
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            $envContent = @"
+            PORT=${{ secrets.APP_PORT || '3005' }}
+            HOST=0.0.0.0
+            NEXT_TELEMETRY_DISABLED=1
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            APP_PASSWORD=${{ secrets.APP_PASSWORD }}
+            "@
+            Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envContent -Encoding UTF8
+
+      - name: Install dependencies on server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            Set-Location $deployPath
+            npm ci
+            npm run init-db
+
+      - name: Install PM2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            npm install -g pm2
+
+      - name: Restart app with PM2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            $ErrorActionPreference = 'Stop'
+            $deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'
+            $appName = 'peminjaman-buku'
+
+            if (pm2 show $appName 2>$null) {
+              pm2 delete $appName
+            }
+
+            Set-Location $deployPath
+            pm2 start "npm run start" --name $appName --cwd $deployPath --watch false
+            pm2 save
+
+      - name: Show app status
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: |
+            pm2 list
+            Write-Host "Deployment completed successfully."
