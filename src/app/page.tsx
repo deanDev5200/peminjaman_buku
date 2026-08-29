@@ -10,11 +10,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BookOpen, Plus, Search, Upload, Download } from 'lucide-react';
 
+const getCurrentAcademicYear = () => {
+  const today = new Date();
+  const baseYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
+  return `${baseYear}/${baseYear + 1}`;
+};
+
+const getAcademicYearOptions = () => {
+  const today = new Date();
+  const currentBaseYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
+  const startYear = 2025;
+  const endYear = 2045;
+
+  const years: string[] = [];
+  for (let academicStart = startYear; academicStart <= endYear; academicStart += 1) {
+    years.push(`${academicStart}/${academicStart + 1}`);
+  }
+
+  if (currentBaseYear < startYear || currentBaseYear > endYear) {
+    return years;
+  }
+
+  return years.filter((year) => {
+    const [start] = year.split('/').map(Number);
+    return start >= startYear && start <= endYear;
+  });
+};
+
 export default function Home() {
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [editingBorrowing, setEditingBorrowing] = useState<Borrowing | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [reportAcademicYear, setReportAcademicYear] = useState(getCurrentAcademicYear());
   const [loading, setLoading] = useState(false);
 
   // Fetch borrowings on mount and when search changes
@@ -201,6 +229,31 @@ export default function Home() {
     }
   };
 
+  const handleMonthlyReportExport = async () => {
+    try {
+      const response = await fetch(`/api/excel/export?type=monthly&academicYear=${encodeURIComponent(reportAcademicYear)}`);
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const formattedYear = reportAcademicYear.replace('/', '-');
+        a.download = `Laporan-Bulanan-TA-${formattedYear}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        const error = await response.json();
+        alert('Gagal export laporan bulanan: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Error exporting monthly report:', error);
+      alert('Gagal export laporan bulanan');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/40 py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -266,6 +319,24 @@ export default function Home() {
                   </Button>
                 </div>
 
+                <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-2">
+                  <label className="text-sm font-medium text-muted-foreground">Tahun Ajaran</label>
+                  <select
+                    value={reportAcademicYear}
+                    onChange={(e) => setReportAcademicYear(e.target.value)}
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {getAcademicYearOptions().map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button variant="outline" onClick={handleMonthlyReportExport}>
+                  <Download className="h-4 w-4" />
+                  Export Laporan Bulanan
+                </Button>
                 <Button variant="outline" onClick={handleExcelExport}>
                   <Download className="h-4 w-4" />
                   Export Excel

@@ -5,10 +5,11 @@ import { calculateReturnDate } from '@/lib/date-utils';
 // PUT update borrowing
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const parsedId = parseInt(id);
     const body = await request.json();
 
     // Validate numeric fields if provided
@@ -20,7 +21,7 @@ export async function PUT(
     }
 
     // Get existing borrowing to preserve return date if book type changes
-    const existing = dbOperations.getBorrowingById(id);
+    const existing = dbOperations.getBorrowingById(parsedId);
     if (!existing) {
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
@@ -38,8 +39,8 @@ export async function PUT(
       updateData.status = existing.status;
     }
 
-    dbOperations.updateBorrowing(id, updateData);
-    const updated = dbOperations.getBorrowingById(id);
+    dbOperations.updateBorrowing(parsedId, updateData);
+    const updated = dbOperations.getBorrowingById(parsedId);
     
     return NextResponse.json(updated);
   } catch (error) {
@@ -51,17 +52,18 @@ export async function PUT(
 // DELETE borrowing
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params;
+    const parsedId = parseInt(id);
     
-    const existing = dbOperations.getBorrowingById(id);
+    const existing = dbOperations.getBorrowingById(parsedId);
     if (!existing) {
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
 
-    dbOperations.deleteBorrowing(id);
+    dbOperations.deleteBorrowing(parsedId);
     return NextResponse.json({ message: 'Borrowing deleted successfully' });
   } catch (error) {
     console.error('Error deleting borrowing:', error);
