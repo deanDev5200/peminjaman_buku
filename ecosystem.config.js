@@ -2,12 +2,14 @@ module.exports = {
   apps: [
     {
       name: 'peminjaman_buku',
-      script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 4000',
+      cwd: 'C:/peminjaman_buku',
+      script: 'node',
+      args: 'scripts/run-next.js start',
       interpreter: 'node',
       env: {
         NODE_ENV: 'production',
         PORT: '4000',
+        HOST: '0.0.0.0',
       },
     },
   ],
