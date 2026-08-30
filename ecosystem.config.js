@@ -3,9 +3,8 @@ module.exports = {
     {
       name: 'peminjaman_buku',
       cwd: 'C:/peminjaman_buku',
-      script: 'node',
-      args: 'scripts/run-next.js start',
-      interpreter: 'node',
+      script: 'scripts/run-next.js',
+      args: 'start',
       env: {
         NODE_ENV: 'production',
         PORT: '4000',
