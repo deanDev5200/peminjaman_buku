@@ -83,4 +83,4 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; pm2 start node_modules/next/dist/bin/next --name peminjaman_buku -- start -p 4000; pm2 save; Write-Host 'Deployment completed successfully'"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; pm2 start ecosystem.config.js; pm2 save; Write-Host 'Deployment completed successfully'"
