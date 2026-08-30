@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = NextResponse.json({ ok: true, message: 'Login berhasil' });
-    return await setAuthCookie(response);
+    return await setAuthCookie(response, request);
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Password tidak dikonfigurasi' }, { status: 500 });

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     setStoredPassword(newPassword);
 
     const response = NextResponse.json({ ok: true, message: 'Password berhasil diubah' });
-    return clearAuthCookie(response);
+    return clearAuthCookie(response, request);
   } catch (error) {
     console.error('Error changing password:', error);
     return NextResponse.json({ error: 'Gagal mengubah password' }, { status: 500 });

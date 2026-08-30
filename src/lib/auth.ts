@@ -127,7 +127,20 @@ export async function verifySessionToken(token?: string): Promise<AuthSession | 
   }
 }
 
-export async function setAuthCookie(response: NextResponse): Promise<NextResponse> {
+function isSecureRequest(request?: Pick<NextRequest, 'headers' | 'url'>): boolean {
+  if (!request) {
+    return process.env.NODE_ENV === 'production';
+  }
+
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto) {
+    return forwardedProto.toLowerCase() === 'https';
+  }
+
+  return request.url.startsWith('https://');
+}
+
+export async function setAuthCookie(response: NextResponse, request?: Pick<NextRequest, 'headers' | 'url'>): Promise<NextResponse> {
   const session: AuthSession = {
     authenticated: true,
     user: 'admin',
@@ -138,7 +151,7 @@ export async function setAuthCookie(response: NextResponse): Promise<NextRespons
   response.cookies.set(AUTH_COOKIE_NAME, await createSessionToken(session), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureRequest(request),
     path: '/',
     maxAge: Math.floor(SESSION_TTL_MS / 1000),
   });
@@ -146,11 +159,11 @@ export async function setAuthCookie(response: NextResponse): Promise<NextRespons
   return response;
 }
 
-export function clearAuthCookie(response: NextResponse): NextResponse {
+export function clearAuthCookie(response: NextResponse, request?: Pick<NextRequest, 'headers' | 'url'>): NextResponse {
   response.cookies.set(AUTH_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureRequest(request),
     path: '/',
     maxAge: 0,
     expires: new Date(0),
