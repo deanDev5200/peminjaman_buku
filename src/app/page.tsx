@@ -336,16 +336,25 @@ export default function Home() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <BookOpen className="h-5 w-5" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/school_logo.png" 
+                alt="School Logo" 
+                className="h-12 w-12 object-contain"
+              />
+              <img 
+                src="/library_logo.png" 
+                alt="Library Logo" 
+                className="h-12 w-12 object-contain"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                Sistem Peminjaman Buku
+                Jnana Grha Mandara
               </h1>
               <p className="text-sm text-muted-foreground">
-                Kelola peminjaman buku perpustakaan dengan mudah
+                Sistem Peminjaman Buku
               </p>
             </div>
           </div>
@@ -407,6 +416,11 @@ export default function Home() {
                     <Upload className="h-4 w-4" />
                     Import Excel
                   </Button>
+                  
+                  <Button variant="outline" onClick={handleExcelExport}>
+                    <Download className="h-4 w-4" />
+                    Export Excel
+                  </Button>
                 </div>
 
                 <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-2">
@@ -426,10 +440,6 @@ export default function Home() {
                 <Button variant="outline" onClick={handleMonthlyReportExport}>
                   <Download className="h-4 w-4" />
                   Export Laporan Bulanan
-                </Button>
-                <Button variant="outline" onClick={handleExcelExport}>
-                  <Download className="h-4 w-4" />
-                  Export Excel
                 </Button>
               </div>
             </div>

@@ -47,11 +47,9 @@ function LoginForm() {
     <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <LockKeyhole className="h-6 w-6" />
-          </div>
+            <img src="/library_logo.png" alt="Library Logo" className="h-12 w-12 object-contain" />
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Library App</p>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Jnana Grha Mandara</p>
             <h1 className="text-2xl font-semibold">Login Akses</h1>
           </div>
         </div>
