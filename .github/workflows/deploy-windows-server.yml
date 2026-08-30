@@ -5,7 +5,11 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch:
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  APP_NAME: peminjaman_buku
+  APP_PORT: 4000
 
 jobs:
   deploy:
@@ -18,19 +22,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: '20'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Rebuild native modules
-        run: npm rebuild better-sqlite3
-
-      - name: Build app
-        env:
-          CI: true
-        run: npm run build
+      - name: Lint (if available)
+        run: npm run lint --if-present
+        continue-on-error: true
 
       - name: Setup deployment directory
         uses: appleboy/ssh-action@v1.0.0
@@ -39,7 +38,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (!(Test-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}')) { New-Item -ItemType Directory -Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}' -Force; cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; git clone https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git . }; Write-Host 'Deployment directory ready'"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (!(Test-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}')) { New-Item -ItemType Directory -Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' -Force; cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git . }; New-Item -ItemType Directory -Path (Join-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' 'logs') -Force"
 
       - name: Install PM2 globally
         uses: appleboy/ssh-action@v1.0.0
@@ -48,7 +47,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "npm install -g pm2"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "npm install -g pm2; npm install -g pm2-windows-startup"
 
       - name: Stop application and backup
         uses: appleboy/ssh-action@v1.0.0
@@ -57,9 +56,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          timeout: 30s
-          command_timeout: 10m
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; cd $deployPath; $ErrorActionPreference = 'Stop'; try { pm2.cmd stop peminjaman-buku --silent 2>$null } catch {}; try { pm2.cmd delete peminjaman-buku --silent 2>$null } catch {}; if (Test-Path (Join-Path $deployPath 'package.json')) { $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; $items = Get-ChildItem -Path $deployPath -Force | Where-Object { $_.Name -notin @('.git', 'node_modules', '.next', '.vercel') -and $_.Name -notlike 'backup_*' }; if ($items) { Compress-Archive -Path $items.FullName -DestinationPath (Join-Path $deployPath \"backup_$timestamp.zip\") -Force } }; Write-Host 'PM2 stop/delete complete'"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; pm2 stop peminjaman_buku 2>$null; pm2 delete peminjaman_buku 2>$null; $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'; Compress-Archive -Path * -DestinationPath \"backup_$timestamp.zip\" -Force -CompressionLevel Fastest"
 
       - name: Pull latest changes
         uses: appleboy/ssh-action@v1.0.0
@@ -68,40 +65,22 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; git fetch origin --prune; git checkout main; git pull --ff-only origin main"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; git config --global credential.helper store; echo 'https://${{ secrets.GITHUB_TOKEN }}@github.com' > $env:USERPROFILE\.git-credentials; git fetch origin; git checkout main; git pull origin main"
 
-      - name: Create production environment file
+      - name: Install dependencies, prepare database, and build
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.WINDOWS_SERVER_HOST }}
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$deployPath = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $envLines = @('PORT=${{ secrets.APP_PORT || '3005' }}', 'HOST=0.0.0.0', 'NEXT_TELEMETRY_DISABLED=1', 'AUTH_SECRET=${{ secrets.AUTH_SECRET }}', 'APP_PASSWORD=${{ secrets.APP_PASSWORD }}'); Set-Content -Path (Join-Path $deployPath '.env.production') -Value $envLines -Encoding UTF8; Write-Host 'Production env written'"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; npm ci; if (!(Test-Path 'src\database\library.db')) { Write-Host 'No existing database found, initializing...'; npm run init-db } else { Write-Host 'Existing database found, leaving it untouched.' }; npm run build"
 
-      - name: Install dependencies and build on server
+      - name: Start application
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.WINDOWS_SERVER_HOST }}
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; npm ci; npm run init-db; npm run build; Write-Host 'Server dependencies and build completed'"
-
-      - name: Restart app with PM2
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.WINDOWS_SERVER_HOST }}
-          username: ${{ secrets.WINDOWS_SERVER_USER }}
-          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $ErrorActionPreference = 'Stop'; $appPort = '${{ secrets.APP_PORT || '3005' }}'; $appDir = '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\\peminjaman-buku' }}'; $nodeBin = (Get-Command node).Source; try { pm2.cmd stop peminjaman-buku --silent 2>$null } catch {}; try { pm2.cmd delete peminjaman-buku --silent 2>$null } catch {}; pm2.cmd start npm --name peminjaman-buku --cwd $appDir --watch false --silent -- start -- --hostname 0.0.0.0 --port $appPort; pm2.cmd save --force; Write-Host 'Deployment completed successfully'"
-
-      - name: Show app status
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.WINDOWS_SERVER_HOST }}
-          username: ${{ secrets.WINDOWS_SERVER_USER }}
-          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "pm2.cmd list --silent"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; pm2 start node_modules/next/dist/bin/next --name peminjaman_buku -- start -p 4000; pm2 save; Write-Host 'Deployment completed successfully'"
