@@ -18,6 +18,8 @@ type BorrowingFormValue = {
   kode_buku: string;
   jumlah: string;
   tanggal_pinjam: string;
+  tanggal_kembali: string;
+  status: string;
 };
 
 type BorrowingSubmitData = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
@@ -59,24 +61,22 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
     jenis_buku: initialData?.jenis_buku || '',
     kode_buku: initialData?.kode_buku || '',
     jumlah: initialData?.jumlah !== undefined ? String(initialData.jumlah) : '',
-    tanggal_pinjam: initialData?.tanggal_pinjam || getCurrentDate()
+    tanggal_pinjam: initialData?.tanggal_pinjam || getCurrentDate(),
+    tanggal_kembali: initialData?.tanggal_kembali || calculateReturnDate(initialData?.tanggal_pinjam || getCurrentDate(), initialData?.jenis_buku || 'Pelajaran'),
+    status: initialData?.status || 'Dipinjam'
   });
-
-  const [returnDate, setReturnDate] = useState(
-    initialData?.tanggal_kembali || calculateReturnDate(formData.tanggal_pinjam, formData.jenis_buku)
-  );
 
   const handleChange = <K extends keyof BorrowingFormValue>(field: K, value: BorrowingFormValue[K]) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
 
-    // Recalculate return date when relevant fields change
-    if (field === 'jenis_buku' || field === 'tanggal_pinjam') {
+    // Auto-calculate return date when not in edit mode
+    if (!isEdit && (field === 'jenis_buku' || field === 'tanggal_pinjam')) {
       const newReturnDate = calculateReturnDate(
         newFormData.tanggal_pinjam,
         newFormData.jenis_buku
       );
-      setReturnDate(newReturnDate);
+      setFormData({ ...newFormData, tanggal_kembali: newReturnDate });
     }
   };
 
@@ -102,8 +102,6 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       return;
     }
 
-    const status = initialData?.status ?? 'Dipinjam';
-
     onSubmit({
       nama: formData.nama,
       nis: Number.parseInt(formData.nis, 10),
@@ -113,8 +111,8 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       kode_buku: formData.kode_buku,
       jumlah: Number.parseInt(formData.jumlah, 10),
       tanggal_pinjam: formData.tanggal_pinjam,
-      tanggal_kembali: returnDate,
-      status,
+      tanggal_kembali: formData.tanggal_kembali,
+      status: formData.status,
     });
   };
 
@@ -127,9 +125,10 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       jenis_buku: '',
       kode_buku: '',
       jumlah: '',
-      tanggal_pinjam: getCurrentDate()
+      tanggal_pinjam: getCurrentDate(),
+      tanggal_kembali: calculateReturnDate(getCurrentDate(), 'Pelajaran'),
+      status: 'Dipinjam'
     });
-    setReturnDate(calculateReturnDate(getCurrentDate(), 'Pelajaran'));
   };
 
   return (
@@ -164,7 +163,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
           <div className="space-y-2">
             <Label htmlFor="kelas">Kelas</Label>
             <Select
-              value={formData.kelas || undefined}
+              value={formData.kelas}
               onValueChange={(value) => handleChange('kelas', value ?? '')}
             >
               <SelectTrigger className="w-full">
@@ -194,7 +193,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             <div className="space-y-2">
               <Label htmlFor="jenis_buku">Jenis Buku</Label>
               <Select
-                value={formData.jenis_buku || undefined}
+                value={formData.jenis_buku}
                 onValueChange={(value) => handleChange('jenis_buku', value ?? '')}
               >
                 <SelectTrigger>
@@ -247,14 +246,43 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tanggal_kembali">Tanggal Kembali (Otomatis)</Label>
+            <Label htmlFor="tanggal_kembali">
+              {isEdit ? 'Tanggal Kembali' : 'Tanggal Kembali (Otomatis)'}
+            </Label>
             <Input
               id="tanggal_kembali"
-              value={returnDate}
-              disabled
-              className="bg-gray-100"
+              type={isEdit ? 'date' : 'text'}
+              value={isEdit ? formData.tanggal_kembali.split('/').reverse().join('-') : formData.tanggal_kembali}
+              disabled={!isEdit}
+              className={!isEdit ? 'bg-gray-100' : ''}
+              onChange={isEdit ? (e) => {
+                const value = e.target.value;
+                if (!value) {
+                  return;
+                }
+                handleChange('tanggal_kembali', value.split('-').reverse().join('/'));
+              } : undefined}
             />
           </div>
+
+          {isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => handleChange('status', value ?? '')}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dipinjam">Dipinjam</SelectItem>
+                  <SelectItem value="Dikembalikan">Dikembalikan</SelectItem>
+                  <SelectItem value="Terlambat">Terlambat</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-4">
             <Button type="submit" className="flex-1">

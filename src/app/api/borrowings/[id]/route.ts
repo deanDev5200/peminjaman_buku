@@ -26,15 +26,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
 
-    // Recalculate return date if book type or borrow date changes
+    // Recalculate return date only if book type or borrow date changes AND return date is not explicitly provided
     const updateData = { ...body };
-    if (body.jenis_buku || body.tanggal_pinjam) {
+    if ((body.jenis_buku || body.tanggal_pinjam) && !body.tanggal_kembali) {
       const jenis_buku = body.jenis_buku || existing.jenis_buku;
       const tanggal_pinjam = body.tanggal_pinjam || existing.tanggal_pinjam;
       updateData.tanggal_kembali = calculateReturnDate(tanggal_pinjam, jenis_buku);
     }
 
-    // Preserve status and original return date if not explicitly changing
+    // Preserve original return date and status if not explicitly changing
+    if (!body.tanggal_kembali) {
+      updateData.tanggal_kembali = existing.tanggal_kembali;
+    }
     if (!body.status) {
       updateData.status = existing.status;
     }
