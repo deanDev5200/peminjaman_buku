@@ -72,9 +72,14 @@ export const dbOperations = {
 
   // Update borrowing
   updateBorrowing: (id: number, borrowing: Partial<Borrowing>): void => {
-    const fields = Object.keys(borrowing).filter(key => key !== 'id').join(', ');
-    const values = Object.values(borrowing).filter((_, index) => Object.keys(borrowing)[index] !== 'id');
-    
+    const fields = Object.keys(borrowing)
+      .filter(key => key !== 'id' && key !== 'created_at' && key !== 'updated_at')
+      .map(key => `${key} = ?`)
+      .join(', ');
+    const values = Object.keys(borrowing)
+      .filter(key => key !== 'id' && key !== 'created_at' && key !== 'updated_at')
+      .map(key => borrowing[key as keyof Borrowing]);
+
     const stmt = db.prepare(`
       UPDATE borrowings 
       SET ${fields}, updated_at = CURRENT_TIMESTAMP 
