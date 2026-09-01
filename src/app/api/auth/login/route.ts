@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setAuthCookie } from '@/lib/auth';
 import { getStoredPassword } from '@/lib/password-store';
+import { logSecurityEvent } from '@/lib/security-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,8 @@ export async function POST(request: NextRequest) {
     if (submittedPassword !== getStoredPassword()) {
       return NextResponse.json({ error: 'Password salah' }, { status: 401 });
     }
+
+    logSecurityEvent(request, 'login');
 
     const response = NextResponse.json({ ok: true, message: 'Login berhasil' });
     return await setAuthCookie(response, request);

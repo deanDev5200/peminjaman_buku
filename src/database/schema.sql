@@ -27,3 +27,18 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE INDEX IF NOT EXISTS idx_nama ON borrowings(nama);
 CREATE INDEX IF NOT EXISTS idx_nis ON borrowings(nis);
 CREATE INDEX IF NOT EXISTS idx_status ON borrowings(status);
+
+CREATE TABLE IF NOT EXISTS security_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    device_type TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    os TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON security_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON security_logs(event_type);

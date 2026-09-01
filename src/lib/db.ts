@@ -13,6 +13,23 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS security_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    device_type TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    os TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON security_logs(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON security_logs(event_type);
+`);
+
 // Types
 export interface Borrowing {
   id?: number;
@@ -34,6 +51,30 @@ export interface AppSetting {
   key: string;
   value: string;
   updated_at?: string;
+}
+
+export type SecurityEventType = 'login' | 'logout';
+
+export interface SecurityLog {
+  id?: number;
+  event_type: SecurityEventType;
+  ip_address: string;
+  user_agent: string;
+  device_type: string;
+  device_name: string;
+  browser: string;
+  os: string;
+  created_at?: string;
+}
+
+export interface SecurityLogInput {
+  event_type: SecurityEventType;
+  ip_address: string;
+  user_agent: string;
+  device_type: string;
+  device_name: string;
+  browser: string;
+  os: string;
 }
 
 // Database operations
@@ -160,7 +201,40 @@ export const dbOperations = {
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
     `);
     stmt.run(key, value);
-  }
+  },
+
+  createSecurityLog: (log: SecurityLogInput): SecurityLog => {
+    const stmt = db.prepare(`
+      INSERT INTO security_logs (
+        event_type, ip_address, user_agent, device_type, device_name, browser, os
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      log.event_type,
+      log.ip_address,
+      log.user_agent,
+      log.device_type,
+      log.device_name,
+      log.browser,
+      log.os
+    );
+
+    return {
+      ...log,
+      id: result.lastInsertRowid as number,
+    };
+  },
+
+  getSecurityLogs: (limit = 200): SecurityLog[] => {
+    const stmt = db.prepare(`
+      SELECT * FROM security_logs
+      ORDER BY datetime(created_at) DESC, id DESC
+      LIMIT ?
+    `);
+
+    return stmt.all(limit) as SecurityLog[];
+  },
 };
 
 export default db;
