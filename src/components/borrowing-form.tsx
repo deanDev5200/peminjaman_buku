@@ -32,6 +32,7 @@ interface BorrowingFormProps {
 }
 
 const CLASS_OPTIONS = [
+  'GURU/PEGAWAI',
   'X TKJ 1',
   'X TKJ 2',
   'X DPIB 1',
@@ -83,28 +84,37 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const isTeacherOrStaff = formData.kelas === 'GURU/PEGAWAI';
+
     // Validate
-    if (!formData.nama || !formData.nis || !formData.kelas || 
+    if (!formData.nama || !formData.kelas ||
         !formData.nama_buku || !formData.jenis_buku || !formData.kode_buku ||
         !formData.jumlah || !formData.tanggal_pinjam) {
       alert('Semua field harus diisi!');
       return;
     }
 
-    if (isNaN(parseInt(formData.nis)) || isNaN(parseInt(formData.jumlah))) {
+    if (!isTeacherOrStaff && !formData.nis) {
+      alert('NIS harus diisi untuk siswa!');
+      return;
+    }
+
+    if (isNaN(parseInt(formData.jumlah)) || (!isTeacherOrStaff && isNaN(parseInt(formData.nis)))) {
       alert('NIS dan Jumlah harus berupa angka!');
       return;
     }
 
-    const nis = parseInt(formData.nis, 10);
-    if (nis < 1000 || nis > 4999) {
-      alert('NIS tidak valid!');
-      return;
+    if (!isTeacherOrStaff) {
+      const nis = parseInt(formData.nis, 10);
+      if (nis < 1000 || nis > 4999) {
+        alert('NIS tidak valid!');
+        return;
+      }
     }
 
     onSubmit({
       nama: formData.nama,
-      nis: Number.parseInt(formData.nis, 10),
+      nis: isTeacherOrStaff ? 0 : Number.parseInt(formData.nis, 10),
       kelas: formData.kelas,
       nama_buku: formData.nama_buku,
       jenis_buku: formData.jenis_buku,
@@ -149,13 +159,14 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nis">NIS</Label>
+              <Label htmlFor="nis">NIS{formData.kelas === 'GURU/PEGAWAI' ? ' (opsional)' : ''}</Label>
               <Input
                 id="nis"
                 type="number"
                 value={formData.nis}
                 onChange={(e) => handleChange('nis', e.target.value)}
-                placeholder="Masukkan NIS"
+                placeholder={formData.kelas === 'GURU/PEGAWAI' ? 'Tidak wajib diisi' : 'Masukkan NIS'}
+                disabled={formData.kelas === 'GURU/PEGAWAI'}
               />
             </div>
           </div>
@@ -164,7 +175,15 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             <Label htmlFor="kelas">Kelas</Label>
             <Select
               value={formData.kelas}
-              onValueChange={(value) => handleChange('kelas', value ?? '')}
+              onValueChange={(value) => {
+                const nextValue = value ?? '';
+                if (nextValue === 'GURU/PEGAWAI') {
+                  setFormData((current) => ({ ...current, kelas: nextValue, nis: '' }));
+                  return;
+                }
+
+                handleChange('kelas', nextValue);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Pilih kelas" />

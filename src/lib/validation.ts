@@ -2,7 +2,7 @@ import { Borrowing } from './db';
 import { resolveBorrowingStatus } from './borrowing-status';
 
 const CLASS_OPTIONS = [
-  'X TKJ 1', 'X TKJ 2', 'X DPIB 1', 'X DPIB 2', 'X TO 1', 'X TO 2',
+  'GURU/PEGAWAI', 'X TKJ 1', 'X TKJ 2', 'X DPIB 1', 'X DPIB 2', 'X TO 1', 'X TO 2',
   'XI TKJ 1', 'XI TKJ 2', 'XI DPIB 1', 'XI DPIB 2', 'XI TO 1', 'XI TO 2',
   'XII TKJ 1', 'XII TKJ 2', 'XII DPIB 1', 'XII DPIB 2', 'XII TO 1', 'XII TO 2'
 ];
@@ -292,12 +292,21 @@ export function validateBorrowing(data: Partial<Borrowing>, isImport: boolean = 
     validatedData.nama = data.nama.trim();
   }
 
+  const isTeacherOrStaff = typeof data.kelas === 'string' && data.kelas.trim() === 'GURU/PEGAWAI';
+
   // Validate nis
-  if (data.nis === undefined || data.nis === null) {
-    errors.push('NIS harus diisi');
+  const rawNis = data.nis as unknown;
+  if (rawNis === undefined || rawNis === null || (typeof rawNis === 'string' && rawNis.trim() === '')) {
+    if (isTeacherOrStaff) {
+      validatedData.nis = 0;
+    } else {
+      errors.push('NIS harus diisi');
+    }
   } else {
-    const nis = Number(data.nis);
-    if (isNaN(nis) || nis < 1000 || nis > 4999) {
+    const nis = Number(rawNis);
+    if (isNaN(nis)) {
+      errors.push('NIS harus berupa angka');
+    } else if (!isTeacherOrStaff && (nis < 1000 || nis > 4999)) {
       errors.push('NIS tidak valid (harus antara 1000-4999)');
     } else {
       validatedData.nis = nis;

@@ -167,6 +167,7 @@ export function BorrowingTable({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Kelas</SelectItem>
+            <SelectItem value="GURU/PEGAWAI">GURU/PEGAWAI</SelectItem>
             <SelectItem value="X TKJ 1">X TKJ 1</SelectItem>
             <SelectItem value="X TKJ 2">X TKJ 2</SelectItem>
             <SelectItem value="X DPIB 1">X DPIB 1</SelectItem>
