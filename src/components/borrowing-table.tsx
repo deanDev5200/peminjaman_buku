@@ -349,15 +349,21 @@ export function BorrowingTable({
                     </TableCell>
                     <TableCell className="py-2 px-3 text-sm">
                       <Badge
-                        variant={borrowing.status === 'Dipinjam' ? 'default' : 'secondary'}
-                        className={`text-xs ${borrowing.status === 'Dipinjam' ? 'bg-blue-500' : 'bg-green-500'}`}
+                        variant={borrowing.status === 'Dikembalikan' ? 'secondary' : 'default'}
+                        className={`text-xs ${
+                          borrowing.status === 'Dipinjam'
+                            ? 'bg-blue-500'
+                            : borrowing.status === 'Terlambat'
+                              ? 'bg-red-500'
+                              : 'bg-green-500'
+                        }`}
                       >
                         {borrowing.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2 px-3 text-right">
                       <div className="flex gap-1 justify-end">
-                        {borrowing.status === 'Dipinjam' && (
+                        {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
                           <Button
                             size="sm"
                             variant="outline"

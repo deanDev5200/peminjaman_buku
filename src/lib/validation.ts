@@ -1,4 +1,5 @@
 import { Borrowing } from './db';
+import { resolveBorrowingStatus } from './borrowing-status';
 
 const CLASS_OPTIONS = [
   'X TKJ 1', 'X TKJ 2', 'X DPIB 1', 'X DPIB 2', 'X TO 1', 'X TO 2',
@@ -413,6 +414,10 @@ export function validateBorrowing(data: Partial<Borrowing>, isImport: boolean = 
     } else {
       validatedData.status = normalizedStatus;
     }
+  }
+
+  if (errors.length === 0) {
+    validatedData.status = resolveBorrowingStatus(validatedData);
   }
 
   return {

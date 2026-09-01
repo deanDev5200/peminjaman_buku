@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveBorrowingStatus } from './borrowing-status';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,6 +113,28 @@ export const dbOperations = {
       ORDER BY created_at DESC
     `);
     return stmt.all(`%${keyword}%`, `%${keyword}%`) as Borrowing[];
+  },
+
+  syncAllBorrowingStatuses: (): { updated: number; total: number } => {
+    const borrowings = db.prepare('SELECT * FROM borrowings').all() as Borrowing[];
+    const updateStmt = db.prepare(`
+      UPDATE borrowings
+      SET status = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+
+    let updated = 0;
+
+    for (const borrowing of borrowings) {
+      const correctStatus = resolveBorrowingStatus(borrowing);
+
+      if (borrowing.status !== correctStatus && borrowing.id !== undefined) {
+        updateStmt.run(correctStatus, borrowing.id);
+        updated += 1;
+      }
+    }
+
+    return { updated, total: borrowings.length };
   },
 
   // Get overdue borrowings

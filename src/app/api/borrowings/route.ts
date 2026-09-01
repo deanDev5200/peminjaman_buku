@@ -6,6 +6,8 @@ import { validateBorrowing } from '@/lib/validation';
 // GET all borrowings
 export async function GET(request: NextRequest) {
   try {
+    dbOperations.syncAllBorrowingStatuses();
+
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
 
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
     };
 
     const result = dbOperations.createBorrowing(borrowing);
+    dbOperations.syncAllBorrowingStatuses();
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('Error creating borrowing:', error);

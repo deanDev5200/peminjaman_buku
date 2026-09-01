@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
+import { AppCredit } from '@/components/app-credit';
 
 function LoginForm() {
   const router = useRouter();
@@ -44,7 +45,7 @@ function LoginForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
             <img src="/library_logo.png" alt="Library Logo" className="h-12 w-12 object-contain" />
@@ -87,6 +88,7 @@ function LoginForm() {
           </button>
         </form>
       </div>
+      <AppCredit className="mt-6" />
     </main>
   );
 }

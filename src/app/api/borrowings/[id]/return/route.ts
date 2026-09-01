@@ -17,6 +17,7 @@ export async function PATCH(
 
     const returnDate = getCurrentDate();
     dbOperations.markAsReturned(parseInt(id), returnDate);
+    dbOperations.syncAllBorrowingStatuses();
     
     const updated = dbOperations.getBorrowingById(parseInt(id));
     return NextResponse.json(updated);

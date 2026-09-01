@@ -30,7 +30,7 @@ export const calculateReturnDate = (borrowDate: string, bookType: string): strin
 
 // Check if a borrowing is overdue
 export const isOverdue = (returnDate: string, status: string): boolean => {
-  if (status !== 'Dipinjam') return false;
+  if (status !== 'Dipinjam' && status !== 'Terlambat') return false;
   
   try {
     const returnD = parse(returnDate, 'dd/MM/yyyy', new Date());

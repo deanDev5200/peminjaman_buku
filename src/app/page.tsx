@@ -8,6 +8,7 @@ import { BorrowingForm } from '@/components/borrowing-form';
 
 type BorrowingPayload = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
 import { BorrowingTable } from '@/components/borrowing-table';
+import { AppCredit } from '@/components/app-credit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -661,6 +662,8 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+
+        <AppCredit className="pt-2" />
       </div>
     </div>
   );

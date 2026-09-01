@@ -51,6 +51,7 @@ export async function PUT(
     }
 
     dbOperations.updateBorrowing(parsedId, updateData);
+    dbOperations.syncAllBorrowingStatuses();
     const updated = dbOperations.getBorrowingById(parsedId);
     
     return NextResponse.json(updated);
@@ -75,6 +76,7 @@ export async function DELETE(
     }
 
     dbOperations.deleteBorrowing(parsedId);
+    dbOperations.syncAllBorrowingStatuses();
     return NextResponse.json({ message: 'Borrowing deleted successfully' });
   } catch (error) {
     console.error('Error deleting borrowing:', error);

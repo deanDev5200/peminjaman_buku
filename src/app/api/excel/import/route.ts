@@ -91,6 +91,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    dbOperations.syncAllBorrowingStatuses();
+
     return NextResponse.json({ 
       message: 'Import completed',
       imported,
