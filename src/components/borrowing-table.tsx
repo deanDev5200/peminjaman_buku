@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Borrowing } from '@/lib/db';
 import { isOverdue } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,11 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface BorrowingTableProps {
   borrowings: Borrowing[];
   onEdit: (borrowing: Borrowing) => void;
-  onDelete: (id: number) => void;
+  onBulkDelete: (ids: number[]) => Promise<void>;
   onReturn: (id: number) => void;
   onSelect: (borrowing: Borrowing) => void;
   currentPage?: number;
@@ -33,12 +35,17 @@ interface BorrowingTableProps {
   itemsPerPage?: number;
   onItemsPerPageChange?: (items: number) => void;
   totalItems?: number;
+  onSort?: (field: string, direction: 'asc' | 'desc') => void;
+  onFilter?: (filters: Record<string, string>) => void;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
+  filters?: Record<string, string>;
 }
 
 export function BorrowingTable({ 
   borrowings, 
   onEdit, 
-  onDelete, 
+  onBulkDelete,
   onReturn, 
   onSelect,
   currentPage = 1,
@@ -46,44 +53,288 @@ export function BorrowingTable({
   onPageChange,
   itemsPerPage = 10,
   onItemsPerPageChange,
-  totalItems = 0
+  totalItems = 0,
+  onSort,
+  sortField,
+  sortDirection,
+  onFilter,
+  filters = {}
 }: BorrowingTableProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [localFilters, setLocalFilters] = useState<Record<string, string>>(filters);
+
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(borrowings.map(b => b.id!)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: number, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.size} data ini?`)) return;
+
+    try {
+      await onBulkDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } catch {
+      // Keep current selection when deletion fails.
+    }
+  };
+
+  const handleSort = (field: string) => {
+    const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+    onSort?.(field, newDirection);
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...localFilters, [key]: value };
+    setLocalFilters(newFilters);
+    onFilter?.(newFilters);
+  };
+
+  const clearFilters = () => {
+    const clearedFilters = Object.keys(localFilters).reduce((acc, key) => ({ ...acc, [key]: '' }), {});
+    setLocalFilters(clearedFilters);
+    onFilter?.(clearedFilters);
+  };
+
+  const allSelected = borrowings.length > 0 && selectedIds.size === borrowings.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < borrowings.length;
+
   return (
     <div className="space-y-3">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center p-3 bg-muted/30 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Filter:</span>
+        </div>
+        
+        <Select
+          value={localFilters.status || 'all'}
+          onValueChange={(value) => handleFilterChange('status', value === 'all' || value == null ? '' : value)}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="Dipinjam">Dipinjam</SelectItem>
+            <SelectItem value="Dikembalikan">Dikembalikan</SelectItem>
+            <SelectItem value="Terlambat">Terlambat</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={localFilters.jenis_buku || 'all'}
+          onValueChange={(value) => handleFilterChange('jenis_buku', value === 'all' || value == null ? '' : value)}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue placeholder="Jenis Buku" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Jenis</SelectItem>
+            <SelectItem value="Pelajaran">Pelajaran</SelectItem>
+            <SelectItem value="Bacaan">Bacaan</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={localFilters.kelas || 'all'}
+          onValueChange={(value) => handleFilterChange('kelas', value === 'all' || value == null ? '' : value)}
+        >
+          <SelectTrigger className="h-8 w-32 text-xs">
+            <SelectValue placeholder="Kelas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Kelas</SelectItem>
+            <SelectItem value="X TKJ 1">X TKJ 1</SelectItem>
+            <SelectItem value="X TKJ 2">X TKJ 2</SelectItem>
+            <SelectItem value="X DPIB 1">X DPIB 1</SelectItem>
+            <SelectItem value="X DPIB 2">X DPIB 2</SelectItem>
+            <SelectItem value="X TO 1">X TO 1</SelectItem>
+            <SelectItem value="X TO 2">X TO 2</SelectItem>
+            <SelectItem value="XI TKJ 1">XI TKJ 1</SelectItem>
+            <SelectItem value="XI TKJ 2">XI TKJ 2</SelectItem>
+            <SelectItem value="XI DPIB 1">XI DPIB 1</SelectItem>
+            <SelectItem value="XI DPIB 2">XI DPIB 2</SelectItem>
+            <SelectItem value="XI TO 1">XI TO 1</SelectItem>
+            <SelectItem value="XI TO 2">XI TO 2</SelectItem>
+            <SelectItem value="XII TKJ 1">XII TKJ 1</SelectItem>
+            <SelectItem value="XII TKJ 2">XII TKJ 2</SelectItem>
+            <SelectItem value="XII DPIB 1">XII DPIB 1</SelectItem>
+            <SelectItem value="XII DPIB 2">XII DPIB 2</SelectItem>
+            <SelectItem value="XII TO 1">XII TO 1</SelectItem>
+            <SelectItem value="XII TO 2">XII TO 2</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={clearFilters}
+          className="h-8 text-xs"
+        >
+          Reset Filter
+        </Button>
+
+        <div className="flex-1" />
+
+        {selectedIds.size > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            className="h-8 text-xs"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Hapus {selectedIds.size} Data
+          </Button>
+        )}
+      </div>
+
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="min-w-[100px] py-2 px-3 text-xs font-semibold">Nama</TableHead>
-              <TableHead className="min-w-[70px] py-2 px-3 text-xs font-semibold">NIS</TableHead>
-              <TableHead className="min-w-[90px] py-2 px-3 text-xs font-semibold">Kelas</TableHead>
-              <TableHead className="min-w-[130px] py-2 px-3 text-xs font-semibold">Nama Buku</TableHead>
-              <TableHead className="min-w-[80px] py-2 px-3 text-xs font-semibold">Jenis</TableHead>
+              <TableHead className="min-w-[40px] py-2 px-3 text-xs font-semibold">
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onCheckedChange={handleSelectAll}
+                  className="h-4 w-4"
+                />
+              </TableHead>
+              <TableHead 
+                className="min-w-[100px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('nama')}
+              >
+                <div className="flex items-center gap-1">
+                  Nama
+                  {sortField === 'nama' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[70px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('nis')}
+              >
+                <div className="flex items-center gap-1">
+                  NIS
+                  {sortField === 'nis' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('kelas')}
+              >
+                <div className="flex items-center gap-1">
+                  Kelas
+                  {sortField === 'kelas' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[130px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('nama_buku')}
+              >
+                <div className="flex items-center gap-1">
+                  Nama Buku
+                  {sortField === 'nama_buku' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[80px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('jenis_buku')}
+              >
+                <div className="flex items-center gap-1">
+                  Jenis
+                  {sortField === 'jenis_buku' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
               <TableHead className="min-w-[80px] py-2 px-3 text-xs font-semibold">Kode</TableHead>
-              <TableHead className="min-w-[50px] py-2 px-3 text-xs font-semibold">Jml</TableHead>
-              <TableHead className="min-w-[90px] py-2 px-3 text-xs font-semibold">Tgl Pinjam</TableHead>
-              <TableHead className="min-w-[90px] py-2 px-3 text-xs font-semibold">Tgl Kembali</TableHead>
-              <TableHead className="min-w-[80px] py-2 px-3 text-xs font-semibold">Status</TableHead>
-              <TableHead className="min-w-[180px] py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>
+              <TableHead 
+                className="min-w-[50px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('jumlah')}
+              >
+                <div className="flex items-center gap-1">
+                  Jml
+                  {sortField === 'jumlah' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('tanggal_pinjam')}
+              >
+                <div className="flex items-center gap-1">
+                  Tgl Pinjam
+                  {sortField === 'tanggal_pinjam' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('tanggal_kembali')}
+              >
+                <div className="flex items-center gap-1">
+                  Tgl Kembali
+                  {sortField === 'tanggal_kembali' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="min-w-[80px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center gap-1">
+                  Status
+                  {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
+                </div>
+              </TableHead>
+              <TableHead className="min-w-[140px] py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {borrowings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-6 text-sm">
+                <TableCell colSpan={12} className="text-center py-6 text-sm">
                   Tidak ada data peminjaman
                 </TableCell>
               </TableRow>
             ) : (
               borrowings.map((borrowing) => {
                 const overdue = isOverdue(borrowing.tanggal_kembali, borrowing.status);
+                const isSelected = selectedIds.has(borrowing.id!);
                 
                 return (
                   <TableRow
                     key={borrowing.id}
-                    className={`hover:bg-muted/50 ${overdue ? 'bg-red-50/50' : ''}`}
+                    className={`hover:bg-muted/50 ${overdue ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-primary/5' : ''}`}
                     onClick={() => onSelect(borrowing)}
                   >
+                    <TableCell className="py-2 px-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleSelectRow(borrowing.id!, checked)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4"
+                      />
+                    </TableCell>
                     <TableCell className="py-2 px-3 text-sm font-medium">{borrowing.nama}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.nis}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.kelas}</TableCell>
@@ -129,17 +380,6 @@ export function BorrowingTable({
                           className="h-7 px-2 text-xs bg-green-500 text-white hover:bg-green-600"
                         >
                           Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(borrowing.id!);
-                          }}
-                          className="h-7 px-2 text-xs bg-red-500 text-white hover:bg-red-600"
-                        >
-                          Hapus
                         </Button>
                       </div>
                     </TableCell>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { parse, isValid } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
@@ -11,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { BookOpen, Plus, Search, Upload, Download, LogOut, Shield } from 'lucide-react';
+import { isOverdue } from '@/lib/date-utils';
+import { Plus, Search, Upload, Download, LogOut, Shield } from 'lucide-react';
 
 const getCurrentAcademicYear = () => {
   const today = new Date();
@@ -57,6 +59,9 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<string>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   const fetchBorrowings = useCallback(async () => {
     try {
@@ -74,25 +79,82 @@ export default function Home() {
     }
   }, [searchTerm]);
 
-  // Recalculate pagination when borrowings or itemsPerPage change
+  const compareBorrowingValues = (
+    aVal: Borrowing[keyof Borrowing],
+    bVal: Borrowing[keyof Borrowing],
+    field: string
+  ) => {
+    if (aVal === undefined || bVal === undefined) return 0;
+
+    if (field === 'tanggal_pinjam' || field === 'tanggal_kembali') {
+      const aDate = typeof aVal === 'string' ? parse(aVal, 'dd/MM/yyyy', new Date()) : null;
+      const bDate = typeof bVal === 'string' ? parse(bVal, 'dd/MM/yyyy', new Date()) : null;
+
+      if (aDate && bDate && isValid(aDate) && isValid(bDate)) {
+        return aDate.getTime() - bDate.getTime();
+      }
+    }
+
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return aVal.localeCompare(bVal);
+    }
+
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return aVal - bVal;
+    }
+
+    return 0;
+  };
+
+  const filteredBorrowings = useMemo(() => {
+    let filtered = [...borrowings];
+
+    if (filters.status) {
+      if (filters.status === 'Terlambat') {
+        filtered = filtered.filter((b) => isOverdue(b.tanggal_kembali, b.status));
+      } else {
+        filtered = filtered.filter((b) => b.status === filters.status);
+      }
+    }
+    if (filters.jenis_buku) {
+      filtered = filtered.filter((b) => b.jenis_buku === filters.jenis_buku);
+    }
+    if (filters.kelas) {
+      filtered = filtered.filter((b) => b.kelas === filters.kelas);
+    }
+
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const comparison = compareBorrowingValues(
+          a[sortField as keyof Borrowing],
+          b[sortField as keyof Borrowing],
+          sortField
+        );
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [borrowings, filters, sortField, sortDirection]);
+
+  // Recalculate pagination when filtered data or itemsPerPage change
   useEffect(() => {
-    const totalPages = Math.ceil(borrowings.length / itemsPerPage);
-    setTotalPages(totalPages);
-    
-    // Reset to page 1 if current page is beyond new total
-    setCurrentPage(prevPage => {
-      if (prevPage > totalPages && totalPages > 0) {
+    const nextTotalPages = Math.max(1, Math.ceil(filteredBorrowings.length / itemsPerPage));
+    setTotalPages(filteredBorrowings.length === 0 ? 1 : nextTotalPages);
+
+    setCurrentPage((prevPage) => {
+      if (prevPage > nextTotalPages && nextTotalPages > 0) {
         return 1;
       }
       return prevPage;
     });
-  }, [borrowings.length, itemsPerPage]);
+  }, [filteredBorrowings.length, itemsPerPage]);
 
-  const getPaginatedBorrowings = () => {
+  const paginatedBorrowings = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return borrowings.slice(startIndex, endIndex);
-  };
+    return filteredBorrowings.slice(startIndex, endIndex);
+  }, [filteredBorrowings, currentPage, itemsPerPage]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -101,6 +163,37 @@ export default function Home() {
   const handleItemsPerPageChange = (items: number) => {
     setItemsPerPage(items);
     setCurrentPage(1); // Reset to page 1 when changing items per page
+  };
+
+  const handleSort = (field: string, direction: 'asc' | 'desc') => {
+    setSortField(field);
+    setSortDirection(direction);
+    setCurrentPage(1);
+  };
+
+  const handleFilter = (newFilters: Record<string, string>) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  };
+
+  const handleBulkDelete = async (ids: number[]) => {
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/borrowings/${id}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || `Gagal menghapus data ID ${id}`);
+        }
+      }
+      alert(`${ids.length} data berhasil dihapus!`);
+      fetchBorrowings();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      alert(error instanceof Error ? error.message : 'Gagal menghapus data');
+      throw error;
+    }
   };
 
   // Fetch borrowings on mount and when search changes
@@ -159,27 +252,6 @@ export default function Home() {
     } catch (error) {
       console.error('Error updating borrowing:', error);
       alert('Gagal mengupdate data');
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
-    
-    try {
-      const response = await fetch(`/api/borrowings/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        fetchBorrowings();
-        alert('Data berhasil dihapus!');
-      } else {
-        const error = await response.json();
-        alert('Gagal menghapus data: ' + error.error);
-      }
-    } catch (error) {
-      console.error('Error deleting borrowing:', error);
-      alert('Gagal menghapus data');
     }
   };
 
@@ -552,9 +624,9 @@ export default function Home() {
               </div>
             ) : (
               <BorrowingTable
-                borrowings={getPaginatedBorrowings()}
+                borrowings={paginatedBorrowings}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onBulkDelete={handleBulkDelete}
                 onReturn={handleReturn}
                 onSelect={handleSelect}
                 currentPage={currentPage}
@@ -562,7 +634,12 @@ export default function Home() {
                 onPageChange={handlePageChange}
                 itemsPerPage={itemsPerPage}
                 onItemsPerPageChange={handleItemsPerPageChange}
-                totalItems={borrowings.length}
+                totalItems={filteredBorrowings.length}
+                onSort={handleSort}
+                onFilter={handleFilter}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                filters={filters}
               />
             )}
           </CardContent>
