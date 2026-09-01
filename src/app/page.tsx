@@ -54,6 +54,9 @@ export default function Home() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchBorrowings = useCallback(async () => {
     try {
@@ -71,6 +74,35 @@ export default function Home() {
     }
   }, [searchTerm]);
 
+  // Recalculate pagination when borrowings or itemsPerPage change
+  useEffect(() => {
+    const totalPages = Math.ceil(borrowings.length / itemsPerPage);
+    setTotalPages(totalPages);
+    
+    // Reset to page 1 if current page is beyond new total
+    setCurrentPage(prevPage => {
+      if (prevPage > totalPages && totalPages > 0) {
+        return 1;
+      }
+      return prevPage;
+    });
+  }, [borrowings.length, itemsPerPage]);
+
+  const getPaginatedBorrowings = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return borrowings.slice(startIndex, endIndex);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1); // Reset to page 1 when changing items per page
+  };
+
   // Fetch borrowings on mount and when search changes
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -78,7 +110,7 @@ export default function Home() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [fetchBorrowings]);
+  }, [searchTerm]);
 
   const handleCreate = async (data: BorrowingPayload) => {
     try {
@@ -520,11 +552,17 @@ export default function Home() {
               </div>
             ) : (
               <BorrowingTable
-                borrowings={borrowings}
+                borrowings={getPaginatedBorrowings()}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onReturn={handleReturn}
                 onSelect={handleSelect}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                totalItems={borrowings.length}
               />
             )}
           </CardContent>
