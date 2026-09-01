@@ -95,7 +95,8 @@ export default function Home() {
         alert('Data berhasil disimpan!');
       } else {
         const error = await response.json();
-        alert('Gagal menyimpan data: ' + error.error);
+        const errorMessage = error.details ? error.details.join(', ') : error.error;
+        alert('Gagal menyimpan data: ' + errorMessage);
       }
     } catch (error) {
       console.error('Error creating borrowing:', error);
@@ -120,7 +121,8 @@ export default function Home() {
         alert('Data berhasil diupdate!');
       } else {
         const error = await response.json();
-        alert('Gagal mengupdate data: ' + error.error);
+        const errorMessage = error.details ? error.details.join(', ') : error.error;
+        alert('Gagal mengupdate data: ' + errorMessage);
       }
     } catch (error) {
       console.error('Error updating borrowing:', error);
@@ -206,7 +208,14 @@ export default function Home() {
       
       if (response.ok) {
         fetchBorrowings();
-        alert(`Import selesai! Berhasil: ${result.imported}, Gagal: ${result.errors}`);
+        let message = `Import selesai! Berhasil: ${result.imported}, Gagal: ${result.errors}`;
+        if (result.errorDetails && result.errorDetails.length > 0) {
+          message += '\n\nDetail error:\n' + result.errorDetails.slice(0, 5).join('\n');
+          if (result.errorDetails.length > 5) {
+            message += `\n... dan ${result.errorDetails.length - 5} error lainnya`;
+          }
+        }
+        alert(message);
       } else {
         alert('Gagal import: ' + result.error);
       }
@@ -416,12 +425,13 @@ export default function Home() {
                     <Upload className="h-4 w-4" />
                     Import Excel
                   </Button>
-                  
-                  <Button variant="outline" onClick={handleExcelExport}>
-                    <Download className="h-4 w-4" />
-                    Export Excel
-                  </Button>
                 </div>
+                
+                  
+                <Button variant="outline" onClick={handleExcelExport}>
+                  <Download className="h-4 w-4" />
+                  Export Excel
+                </Button>
 
                 <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-2">
                   <label className="text-sm font-medium text-muted-foreground">Tahun Ajaran</label>

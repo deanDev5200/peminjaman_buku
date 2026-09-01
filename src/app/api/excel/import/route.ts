@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { dbOperations } from '@/lib/db';
 import { calculateReturnDate } from '@/lib/date-utils';
+import { validateImportRow } from '@/lib/validation';
 
 function toStringValue(value: unknown): string {
   if (value === null || value === undefined) {
@@ -58,32 +59,23 @@ export async function POST(request: NextRequest) {
     // Process data rows
     let imported = 0;
     let errors = 0;
+    const errorDetails: string[] = [];
 
     for (let i = 1; i < jsonData.length; i++) {
       const row = jsonData[i] as unknown[];
       if (!row || row.length === 0) continue;
 
       try {
-        const borrowing = {
-          nama: toStringValue(row[0]),
-          nis: toNumberValue(row[1]),
-          kelas: toStringValue(row[2]),
-          nama_buku: toStringValue(row[3]),
-          jenis_buku: toStringValue(row[4]),
-          kode_buku: toStringValue(row[5]),
-          jumlah: toNumberValue(row[6]),
-          tanggal_pinjam: toStringValue(row[7]),
-          tanggal_kembali: toStringValue(row[8]),
-          status: toStringValue(row[9]) || 'Dipinjam'
-        };
-
-        // Validate required fields
-        if (!borrowing.nama || !borrowing.nis || !borrowing.kelas || 
-            !borrowing.nama_buku || !borrowing.jenis_buku || !borrowing.kode_buku ||
-            !borrowing.jumlah || !borrowing.tanggal_pinjam) {
+        // Validate the row using comprehensive validation
+        const validation = validateImportRow(row, i + 1);
+        
+        if (!validation.valid || !validation.data) {
           errors++;
+          errorDetails.push(...validation.errors);
           continue;
         }
+
+        const borrowing = validation.data;
 
         // Recalculate return date if needed
         if (!borrowing.tanggal_kembali || borrowing.status === 'Dipinjam') {
@@ -95,6 +87,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('Error importing row:', i, error);
         errors++;
+        errorDetails.push(`Baris ${i + 1}: Error processing row`);
       }
     }
 
@@ -102,7 +95,8 @@ export async function POST(request: NextRequest) {
       message: 'Import completed',
       imported,
       errors,
-      total: jsonData.length - 1
+      total: jsonData.length - 1,
+      errorDetails: errorDetails.length > 0 ? errorDetails.slice(0, 10) : undefined // Show first 10 errors
     });
   } catch (error) {
     console.error('Error importing Excel:', error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbOperations } from '@/lib/db';
 import { calculateReturnDate } from '@/lib/date-utils';
+import { validateBorrowing } from '@/lib/validation';
 
 // PUT update borrowing
 export async function PUT(
@@ -26,20 +27,27 @@ export async function PUT(
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
 
-    // Recalculate return date only if book type or borrow date changes AND return date is not explicitly provided
-    const updateData = { ...body };
-    if ((body.jenis_buku || body.tanggal_pinjam) && !body.tanggal_kembali) {
-      const jenis_buku = body.jenis_buku || existing.jenis_buku;
-      const tanggal_pinjam = body.tanggal_pinjam || existing.tanggal_pinjam;
-      updateData.tanggal_kembali = calculateReturnDate(tanggal_pinjam, jenis_buku);
+    // Merge existing data with updates for validation
+    const mergedData = { ...existing, ...body };
+
+    // Validate the merged data
+    const validation = validateBorrowing(mergedData);
+    if (!validation.valid) {
+      return NextResponse.json({ 
+        error: 'Validation failed', 
+        details: validation.errors 
+      }, { status: 400 });
     }
 
-    // Preserve original return date and status if not explicitly changing
-    if (!body.tanggal_kembali) {
-      updateData.tanggal_kembali = existing.tanggal_kembali;
-    }
-    if (!body.status) {
-      updateData.status = existing.status;
+    // Use validated data for update
+    const updateData: Record<string, unknown> = validation.data ? { ...validation.data } : {};
+
+    // Handle return date logic
+    if (!body.tanggal_kembali && (body.jenis_buku || body.tanggal_pinjam)) {
+      // Recalculate if book type or borrow date changed but return date wasn't explicitly set
+      const jenis_buku = String(updateData.jenis_buku || existing.jenis_buku);
+      const tanggal_pinjam = String(updateData.tanggal_pinjam || existing.tanggal_pinjam);
+      updateData.tanggal_kembali = calculateReturnDate(tanggal_pinjam, jenis_buku);
     }
 
     dbOperations.updateBorrowing(parsedId, updateData);
