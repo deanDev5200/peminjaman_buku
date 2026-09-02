@@ -10,10 +10,16 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
+    const status = searchParams.get('status');
 
     let borrowings;
     if (search) {
       borrowings = dbOperations.searchBorrowings(search);
+      if (status) {
+        borrowings = borrowings.filter((borrowing) => borrowing.status === status);
+      }
+    } else if (status) {
+      borrowings = dbOperations.getAllBorrowings().filter((borrowing) => borrowing.status === status);
     } else {
       borrowings = dbOperations.getAllBorrowings();
     }

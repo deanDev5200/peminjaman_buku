@@ -15,7 +15,12 @@ export async function middleware(request: NextRequest) {
   const authSession = await verifySessionToken(request.cookies.get(AUTH_COOKIE_NAME)?.value);
   const isAuthenticated = Boolean(authSession);
 
-  const isPublicApiRoute = pathname === '/api/auth/login' || pathname === '/api/auth/logout';
+    const isPublicApiRoute =
+      pathname === '/api/auth/login' ||
+      pathname === '/api/auth/logout' ||
+      (pathname === '/api/borrowings' &&
+        request.method === 'GET' &&
+        request.nextUrl.searchParams.get('status') === 'Dipinjam');
 
   if (pathname.startsWith('/api')) {
     if (isPublicApiRoute) {

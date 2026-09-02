@@ -4,19 +4,6 @@ import { dbOperations } from '@/lib/db';
 import { calculateReturnDate } from '@/lib/date-utils';
 import { validateImportRow } from '@/lib/validation';
 
-function toStringValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  return String(value).trim();
-}
-
-function toNumberValue(value: unknown): number {
-  const parsed = Number(toStringValue(value));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

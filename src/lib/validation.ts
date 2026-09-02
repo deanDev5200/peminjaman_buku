@@ -33,7 +33,7 @@ function excelDateToDateString(excelDate: number): string {
     const year = date.getFullYear();
     
     return `${day}/${month}/${year}`;
-  } catch (e) {
+  } catch {
     return '';
   }
 }
@@ -123,7 +123,7 @@ function normalizeDate(dateValue: unknown): string {
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
       }
-    } catch (e) {
+    } catch {
       // Invalid date string
     }
   }

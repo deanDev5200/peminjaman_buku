@@ -89,13 +89,23 @@ export default function SecurityAdminPage() {
   }, []);
 
   useEffect(() => {
-    void checkAccess();
+    const timeoutId = window.setTimeout(() => {
+      void checkAccess();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [checkAccess]);
 
   useEffect(() => {
     if (unlocked) {
-      void fetchLogs();
+      const timeoutId = window.setTimeout(() => {
+        void fetchLogs();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
+
+    return undefined;
   }, [unlocked, fetchLogs]);
 
   const handleUnlock = async (event: FormEvent) => {

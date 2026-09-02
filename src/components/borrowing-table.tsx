@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Borrowing } from '@/lib/db';
 import { isOverdue } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
@@ -25,10 +25,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface BorrowingTableProps {
   borrowings: Borrowing[];
-  onEdit: (borrowing: Borrowing) => void;
-  onBulkDelete: (ids: number[]) => Promise<void>;
-  onReturn: (id: number) => void;
-  onSelect: (borrowing: Borrowing) => void;
+  onEdit?: (borrowing: Borrowing) => void;
+  onBulkDelete?: (ids: number[]) => Promise<void>;
+  onReturn?: (id: number) => void;
+  onSelect?: (borrowing: Borrowing) => void;
+  readOnly?: boolean;
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
@@ -48,6 +49,7 @@ export function BorrowingTable({
   onBulkDelete,
   onReturn, 
   onSelect,
+  readOnly = false,
   currentPage = 1,
   totalPages = 1,
   onPageChange,
@@ -61,15 +63,6 @@ export function BorrowingTable({
   filters = {}
 }: BorrowingTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [localFilters, setLocalFilters] = useState<Record<string, string>>(filters);
-
-  useEffect(() => {
-    setLocalFilters(filters);
-  }, [filters]);
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [currentPage]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -90,11 +83,11 @@ export function BorrowingTable({
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.size} data ini?`)) return;
+    if (visibleSelectedIds.size === 0 || !onBulkDelete) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus ${visibleSelectedIds.size} data ini?`)) return;
 
     try {
-      await onBulkDelete(Array.from(selectedIds));
+      await onBulkDelete(Array.from(visibleSelectedIds));
       setSelectedIds(new Set());
     } catch {
       // Keep current selection when deletion fails.
@@ -107,30 +100,33 @@ export function BorrowingTable({
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...localFilters, [key]: value };
-    setLocalFilters(newFilters);
+    const newFilters = { ...filters, [key]: value };
     onFilter?.(newFilters);
   };
 
   const clearFilters = () => {
-    const clearedFilters = Object.keys(localFilters).reduce((acc, key) => ({ ...acc, [key]: '' }), {});
-    setLocalFilters(clearedFilters);
+    const clearedFilters = Object.keys(filters).reduce((acc, key) => ({ ...acc, [key]: '' }), {});
     onFilter?.(clearedFilters);
   };
 
-  const allSelected = borrowings.length > 0 && selectedIds.size === borrowings.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < borrowings.length;
+  const visibleSelectedIds = new Set(
+    borrowings
+      .map((borrowing) => borrowing.id)
+      .filter((id): id is number => id !== undefined && selectedIds.has(id))
+  );
+  const allSelected = borrowings.length > 0 && visibleSelectedIds.size === borrowings.length;
+  const someSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < borrowings.length;
 
   return (
     <div className="space-y-3">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center p-3 bg-muted/30 rounded-lg border">
+      {!readOnly && <div className="flex flex-wrap gap-3 items-center p-3 bg-muted/30 rounded-lg border">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground">Filter:</span>
         </div>
         
         <Select
-          value={localFilters.status || 'all'}
+          value={filters.status || 'all'}
           onValueChange={(value) => handleFilterChange('status', value === 'all' || value == null ? '' : value)}
         >
           <SelectTrigger className="h-8 w-32 text-xs">
@@ -145,7 +141,7 @@ export function BorrowingTable({
         </Select>
 
         <Select
-          value={localFilters.jenis_buku || 'all'}
+          value={filters.jenis_buku || 'all'}
           onValueChange={(value) => handleFilterChange('jenis_buku', value === 'all' || value == null ? '' : value)}
         >
           <SelectTrigger className="h-8 w-32 text-xs">
@@ -159,7 +155,7 @@ export function BorrowingTable({
         </Select>
 
         <Select
-          value={localFilters.kelas || 'all'}
+          value={filters.kelas || 'all'}
           onValueChange={(value) => handleFilterChange('kelas', value === 'all' || value == null ? '' : value)}
         >
           <SelectTrigger className="h-8 w-32 text-xs">
@@ -211,20 +207,20 @@ export function BorrowingTable({
             Hapus {selectedIds.size} Data
           </Button>
         )}
-      </div>
+      </div>}
 
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="min-w-10 py-2 px-3 text-xs font-semibold">
+              {!readOnly && <TableHead className="min-w-10 py-2 px-3 text-xs font-semibold">
                 <Checkbox
                   checked={allSelected}
                   indeterminate={someSelected}
                   onCheckedChange={handleSelectAll}
                   className="h-4 w-4"
                 />
-              </TableHead>
+              </TableHead>}
               <TableHead 
                 className="min-w-25 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('nama')}
@@ -307,13 +303,13 @@ export function BorrowingTable({
                   {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
                 </div>
               </TableHead>
-              <TableHead className="min-w-35 py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>
+              {!readOnly && <TableHead className="min-w-35 py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {borrowings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-6 text-sm">
+                <TableCell colSpan={readOnly ? 10 : 12} className="text-center py-6 text-sm">
                   Tidak ada data peminjaman
                 </TableCell>
               </TableRow>
@@ -326,16 +322,16 @@ export function BorrowingTable({
                   <TableRow
                     key={borrowing.id}
                     className={`hover:bg-muted/50 ${overdue ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-primary/5' : ''}`}
-                    onClick={() => onSelect(borrowing)}
+                    onClick={() => onSelect?.(borrowing)}
                   >
-                    <TableCell className="py-2 px-3">
+                    {!readOnly && <TableCell className="py-2 px-3">
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={(checked) => handleSelectRow(borrowing.id!, checked)}
                         onClick={(e) => e.stopPropagation()}
                         className="h-4 w-4"
                       />
-                    </TableCell>
+                    </TableCell>}
                     <TableCell className="py-2 px-3 text-sm font-medium">{borrowing.nama}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.nis}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.kelas}</TableCell>
@@ -362,7 +358,7 @@ export function BorrowingTable({
                         {borrowing.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 px-3 text-right">
+                    {!readOnly && <TableCell className="py-2 px-3 text-right">
                       <div className="flex gap-1 justify-end">
                         {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
                           <Button
@@ -370,7 +366,7 @@ export function BorrowingTable({
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onReturn(borrowing.id!);
+                              onReturn?.(borrowing.id!);
                             }}
                             className="h-7 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600"
                           >
@@ -382,14 +378,14 @@ export function BorrowingTable({
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onEdit(borrowing);
+                            onEdit?.(borrowing);
                           }}
                           className="h-7 px-2 text-xs bg-green-500 text-white hover:bg-green-600"
                         >
                           Edit
                         </Button>
                       </div>
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
                 );
               })

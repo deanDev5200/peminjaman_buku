@@ -2,7 +2,8 @@
 
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LockKeyhole, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
+import { ShieldCheck } from 'lucide-react';
 import { AppCredit } from '@/components/app-credit';
 
 function LoginForm() {
@@ -48,7 +49,7 @@ function LoginForm() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-100 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
-            <img src="/library_logo.png" alt="Library Logo" className="h-12 w-12 object-contain" />
+            <Image src="/library_logo.png" alt="Library Logo" width={48} height={48} className="h-12 w-12 object-contain" />
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Jnana Grha Mandara</p>
             <h1 className="text-2xl font-semibold">Login Akses</h1>

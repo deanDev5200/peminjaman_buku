@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { parse, isValid } from 'date-fns';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
 
@@ -44,6 +45,8 @@ const getAcademicYearOptions = () => {
 };
 
 export default function Home() {
+  const pathname = usePathname();
+  const isPublicPage = pathname === '/';
   const router = useRouter();
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [editingBorrowing, setEditingBorrowing] = useState<Borrowing | null>(null);
@@ -58,7 +61,6 @@ export default function Home() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -67,9 +69,10 @@ export default function Home() {
   const fetchBorrowings = useCallback(async () => {
     try {
       setLoading(true);
-      const url = searchTerm 
-        ? `/api/borrowings?search=${encodeURIComponent(searchTerm)}`
-        : '/api/borrowings';
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('search', searchTerm);
+      if (isPublicPage) params.set('status', 'Dipinjam');
+      const url = params.toString() ? `/api/borrowings?${params.toString()}` : '/api/borrowings';
       const response = await fetch(url);
       const data = await response.json();
       setBorrowings(data);
@@ -78,7 +81,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [isPublicPage, searchTerm]);
 
   const compareBorrowingValues = (
     aVal: Borrowing[keyof Borrowing],
@@ -139,23 +142,17 @@ export default function Home() {
   }, [borrowings, filters, sortField, sortDirection]);
 
   // Recalculate pagination when filtered data or itemsPerPage change
-  useEffect(() => {
-    const nextTotalPages = Math.max(1, Math.ceil(filteredBorrowings.length / itemsPerPage));
-    setTotalPages(filteredBorrowings.length === 0 ? 1 : nextTotalPages);
+  // 1. Calculate totalPages dynamically on every render
+  const totalPages = Math.max(1, Math.ceil(filteredBorrowings.length / itemsPerPage));
 
-    setCurrentPage((prevPage) => {
-      if (prevPage > nextTotalPages && nextTotalPages > 0) {
-        return 1;
-      }
-      return prevPage;
-    });
-  }, [filteredBorrowings.length, itemsPerPage]);
+  // 2. Mathematically bind the current page so it never exceeds totalPages
+  // If totalPages shrinks to 2, but currentPage is 5, this forces it to 2.
+  const validCurrentPage = Math.min(currentPage, totalPages);
 
-  const paginatedBorrowings = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredBorrowings.slice(startIndex, endIndex);
-  }, [filteredBorrowings, currentPage, itemsPerPage]);
+  // 3. Use validCurrentPage to slice your data for the UI
+  const startIndex = (validCurrentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBorrowings = filteredBorrowings.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -204,7 +201,7 @@ export default function Home() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [fetchBorrowings, searchTerm]);
 
   const handleCreate = async (data: BorrowingPayload) => {
     try {
@@ -445,6 +442,64 @@ export default function Home() {
     }
   };
 
+  const statusCounts = useMemo(() => ({
+    Dipinjam: borrowings.filter((borrowing) => borrowing.status === 'Dipinjam').length,
+    Dikembalikan: borrowings.filter((borrowing) => borrowing.status === 'Dikembalikan').length,
+    Terlambat: borrowings.filter((borrowing) => borrowing.status === 'Terlambat').length,
+  }), [borrowings]);
+
+  if (isPublicPage) {
+    return (
+      <div className="min-h-screen bg-muted/40 py-10 px-4">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <Image src="/school_logo.png" alt="School Logo" width={48} height={48} className="h-12 w-12 object-contain" />
+              <Image src="/library_logo.png" alt="Library Logo" width={48} height={48} className="h-12 w-12 object-contain" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Jnana Grha Mandara</h1>
+              <p className="text-sm text-muted-foreground">Daftar Buku Sedang Dipinjam</p>
+            </div>
+          </div>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Peminjaman Aktif</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative w-full md:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Cari berdasarkan Nama atau NIS..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="w-full pl-9"
+                />
+              </div>
+              {loading ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">Memuat data...</div>
+              ) : (
+                <BorrowingTable
+                  borrowings={paginatedBorrowings}
+                  readOnly
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  itemsPerPage={itemsPerPage}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                  totalItems={filteredBorrowings.length}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <AppCredit className="pt-2" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/40 py-10 px-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -452,14 +507,18 @@ export default function Home() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <img 
+              <Image 
                 src="/school_logo.png" 
                 alt="School Logo" 
+                width={48}
+                height={48}
                 className="h-12 w-12 object-contain"
               />
-              <img 
+              <Image 
                 src="/library_logo.png" 
                 alt="Library Logo" 
+                width={48}
+                height={48}
                 className="h-12 w-12 object-contain"
               />
             </div>
@@ -651,13 +710,13 @@ export default function Home() {
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-3 justify-center text-sm">
               <span className="inline-flex items-center rounded-full bg-status-borrowed px-3 py-1 text-xs font-medium text-status-borrowed-foreground">
-                Dipinjam
+                Dipinjam: {statusCounts.Dipinjam}
               </span>
               <span className="inline-flex items-center rounded-full bg-status-returned px-3 py-1 text-xs font-medium text-status-returned-foreground">
-                Dikembalikan
+                Dikembalikan: {statusCounts.Dikembalikan}
               </span>
               <span className="inline-flex items-center rounded-full bg-status-overdue px-3 py-1 text-xs font-medium text-status-overdue-foreground">
-                Terlambat
+                Terlambat: {statusCounts.Terlambat}
               </span>
             </div>
           </CardContent>
