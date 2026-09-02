@@ -34,7 +34,7 @@ function LoginForm() {
         return;
       }
 
-      const redirectTarget = searchParams.get('redirect') || '/';
+      const redirectTarget = searchParams.get('redirect') || '/admin/peminjaman';
       router.push(redirectTarget);
       router.refresh();
     } catch (submitError) {

@@ -15,12 +15,12 @@ export async function middleware(request: NextRequest) {
   const authSession = await verifySessionToken(request.cookies.get(AUTH_COOKIE_NAME)?.value);
   const isAuthenticated = Boolean(authSession);
 
-    const isPublicApiRoute =
-      pathname === '/api/auth/login' ||
-      pathname === '/api/auth/logout' ||
-      (pathname === '/api/borrowings' &&
-        request.method === 'GET' &&
-        request.nextUrl.searchParams.get('status') === 'Dipinjam');
+  const isPublicApiRoute =
+    pathname === '/api/auth/login' ||
+    pathname === '/api/auth/logout' ||
+    (pathname === '/api/borrowings' &&
+      request.method === 'GET' &&
+      request.nextUrl.searchParams.get('status') === 'Dipinjam');
 
   if (pathname.startsWith('/api')) {
     if (isPublicApiRoute) {
@@ -36,13 +36,13 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/login') {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(new URL('/admin/peminjaman', request.url));
     }
 
     return NextResponse.next();
   }
 
-  if (!isAuthenticated) {
+  if (pathname.startsWith('/admin/') && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
