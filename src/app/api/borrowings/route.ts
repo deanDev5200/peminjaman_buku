@@ -15,9 +15,13 @@ export async function GET(request: NextRequest) {
     let borrowings;
     if (search) {
       borrowings = dbOperations.searchBorrowings(search);
-      if (status) {
+      if (status === 'active') {
+        borrowings = borrowings.filter((borrowing) => borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat');
+      } else if (status) {
         borrowings = borrowings.filter((borrowing) => borrowing.status === status);
       }
+    } else if (status === 'active') {
+      borrowings = dbOperations.getAllBorrowings().filter((borrowing) => borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat');
     } else if (status) {
       borrowings = dbOperations.getAllBorrowings().filter((borrowing) => borrowing.status === status);
     } else {

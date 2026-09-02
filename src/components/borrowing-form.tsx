@@ -298,6 +298,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
                   <SelectItem value="Dipinjam">Dipinjam</SelectItem>
                   <SelectItem value="Dikembalikan">Dikembalikan</SelectItem>
                   <SelectItem value="Terlambat">Terlambat</SelectItem>
+                  <SelectItem value="Terlambat Dikembalikan">Terlambat Dikembalikan</SelectItem>
                 </SelectContent>
               </Select>
             </div>

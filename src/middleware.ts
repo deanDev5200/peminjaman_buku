@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/auth/logout' ||
     (pathname === '/api/borrowings' &&
       request.method === 'GET' &&
-      request.nextUrl.searchParams.get('status') === 'Dipinjam');
+        request.nextUrl.searchParams.get('status') === 'active');
 
   if (pathname.startsWith('/api')) {
     if (isPublicApiRoute) {

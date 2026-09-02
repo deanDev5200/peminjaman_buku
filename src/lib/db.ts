@@ -137,13 +137,13 @@ export const dbOperations = {
   },
 
   // Mark as returned
-  markAsReturned: (id: number, returnDate: string): void => {
+  markAsReturned: (id: number, returnDate: string, status: 'Dikembalikan' | 'Terlambat Dikembalikan'): void => {
     const stmt = db.prepare(`
       UPDATE borrowings 
-      SET status = 'Dikembalikan', tanggal_kembali = ?, updated_at = CURRENT_TIMESTAMP 
+      SET status = ?, tanggal_kembali = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `);
-    stmt.run(returnDate, id);
+    stmt.run(status, returnDate, id);
   },
 
   // Search borrowings by name or NIS

@@ -71,7 +71,7 @@ export default function Home() {
       setLoading(true);
       const params = new URLSearchParams();
       if (searchTerm) params.set('search', searchTerm);
-      if (isPublicPage) params.set('status', 'Dipinjam');
+      if (isPublicPage) params.set('status', 'active');
       const url = params.toString() ? `/api/borrowings?${params.toString()}` : '/api/borrowings';
       const response = await fetch(url);
       const data = await response.json();
@@ -446,6 +446,7 @@ export default function Home() {
     Dipinjam: borrowings.filter((borrowing) => borrowing.status === 'Dipinjam').length,
     Dikembalikan: borrowings.filter((borrowing) => borrowing.status === 'Dikembalikan').length,
     Terlambat: borrowings.filter((borrowing) => borrowing.status === 'Terlambat').length,
+    TerlambatDikembalikan: borrowings.filter((borrowing) => borrowing.status === 'Terlambat Dikembalikan').length,
   }), [borrowings]);
 
   if (isPublicPage) {
@@ -717,6 +718,9 @@ export default function Home() {
               </span>
               <span className="inline-flex items-center rounded-full bg-status-overdue px-3 py-1 text-xs font-medium text-status-overdue-foreground">
                 Terlambat: {statusCounts.Terlambat}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-status-overdue px-3 py-1 text-xs font-medium text-status-overdue-foreground">
+                Terlambat Dikembalikan: {statusCounts.TerlambatDikembalikan}
               </span>
             </div>
           </CardContent>

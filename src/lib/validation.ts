@@ -7,7 +7,7 @@ const CLASS_OPTIONS = [
   'XII TKJ 1', 'XII TKJ 2', 'XII DPIB 1', 'XII DPIB 2', 'XII TO 1', 'XII TO 2'
 ];
 
-const STATUS_OPTIONS = ['Dipinjam', 'Dikembalikan', 'Terlambat'];
+const STATUS_OPTIONS = ['Dipinjam', 'Dikembalikan', 'Terlambat', 'Terlambat Dikembalikan'];
 const JENIS_BUKU_OPTIONS = ['Pelajaran', 'Bacaan'];
 
 interface ValidationResult {

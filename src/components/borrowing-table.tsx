@@ -137,6 +137,7 @@ export function BorrowingTable({
             <SelectItem value="Dipinjam">Dipinjam</SelectItem>
             <SelectItem value="Dikembalikan">Dikembalikan</SelectItem>
             <SelectItem value="Terlambat">Terlambat</SelectItem>
+            <SelectItem value="Terlambat Dikembalikan">Terlambat Dikembalikan</SelectItem>
           </SelectContent>
         </Select>
 
@@ -346,11 +347,11 @@ export function BorrowingTable({
                     </TableCell>
                     <TableCell className="py-2 px-3 text-sm">
                       <Badge
-                        variant={borrowing.status === 'Dikembalikan' ? 'secondary' : 'default'}
+                        variant={borrowing.status === 'Dikembalikan' || borrowing.status === 'Terlambat Dikembalikan' ? 'secondary' : 'default'}
                         className={`text-xs ${
                           borrowing.status === 'Dipinjam'
                             ? 'bg-blue-500'
-                            : borrowing.status === 'Terlambat'
+                            : borrowing.status === 'Terlambat' || borrowing.status === 'Terlambat Dikembalikan'
                               ? 'bg-red-500'
                               : 'bg-green-500'
                         }`}

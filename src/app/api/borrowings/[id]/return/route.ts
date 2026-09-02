@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbOperations } from '@/lib/db';
-import { getCurrentDate } from '@/lib/date-utils';
+import { calculateReturnDate, getCurrentDate, isOverdue } from '@/lib/date-utils';
 
 // PATCH mark as returned
 export async function PATCH(
@@ -16,7 +16,11 @@ export async function PATCH(
     }
 
     const returnDate = getCurrentDate();
-    dbOperations.markAsReturned(parseInt(id), returnDate);
+    const dueDate = calculateReturnDate(existing.tanggal_pinjam, existing.jenis_buku);
+    const returnStatus = isOverdue(dueDate, 'Dipinjam')
+      ? 'Terlambat Dikembalikan'
+      : 'Dikembalikan';
+    dbOperations.markAsReturned(parseInt(id), returnDate, returnStatus);
     dbOperations.syncAllBorrowingStatuses();
     
     const updated = dbOperations.getBorrowingById(parseInt(id));
