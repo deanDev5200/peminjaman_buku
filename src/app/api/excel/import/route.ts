@@ -60,6 +60,25 @@ export async function POST(request: NextRequest) {
     let imported = 0;
     let errors = 0;
     const errorDetails: string[] = [];
+    const existingBorrowings = dbOperations.getAllBorrowings();
+    const seen = new Set<string>();
+
+    for (const borrowingItem of existingBorrowings) {
+      const key = [
+        borrowingItem.nama,
+        String(borrowingItem.nis),
+        borrowingItem.kelas,
+        borrowingItem.nama_buku,
+        borrowingItem.jenis_buku,
+        borrowingItem.kode_buku,
+        String(borrowingItem.jumlah),
+        borrowingItem.tanggal_pinjam,
+        borrowingItem.tanggal_kembali,
+        borrowingItem.status,
+      ].join('|');
+
+      seen.add(key);
+    }
 
     for (let i = 1; i < jsonData.length; i++) {
       const row = jsonData[i] as unknown[];
@@ -68,7 +87,7 @@ export async function POST(request: NextRequest) {
       try {
         // Validate the row using comprehensive validation
         const validation = validateImportRow(row, i + 1);
-        
+
         if (!validation.valid || !validation.data) {
           errors++;
           errorDetails.push(...validation.errors);
@@ -82,7 +101,25 @@ export async function POST(request: NextRequest) {
           borrowing.tanggal_kembali = calculateReturnDate(borrowing.tanggal_pinjam, borrowing.jenis_buku);
         }
 
+        const key = [
+          borrowing.nama,
+          String(borrowing.nis),
+          borrowing.kelas,
+          borrowing.nama_buku,
+          borrowing.jenis_buku,
+          borrowing.kode_buku,
+          String(borrowing.jumlah),
+          borrowing.tanggal_pinjam,
+          borrowing.tanggal_kembali,
+          borrowing.status,
+        ].join('|');
+
+        if (seen.has(key)) {
+          continue;
+        }
+
         dbOperations.createBorrowing(borrowing);
+        seen.add(key);
         imported++;
       } catch (error) {
         console.error('Error importing row:', i, error);

@@ -217,7 +217,7 @@ export function BorrowingTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="min-w-[40px] py-2 px-3 text-xs font-semibold">
+              <TableHead className="min-w-10 py-2 px-3 text-xs font-semibold">
                 <Checkbox
                   checked={allSelected}
                   indeterminate={someSelected}
@@ -226,7 +226,7 @@ export function BorrowingTable({
                 />
               </TableHead>
               <TableHead 
-                className="min-w-[100px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-25 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('nama')}
               >
                 <div className="flex items-center gap-1">
@@ -235,7 +235,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[70px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-17.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('nis')}
               >
                 <div className="flex items-center gap-1">
@@ -244,7 +244,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-22.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('kelas')}
               >
                 <div className="flex items-center gap-1">
@@ -253,7 +253,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[130px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-32.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('nama_buku')}
               >
                 <div className="flex items-center gap-1">
@@ -262,7 +262,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[80px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-20 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('jenis_buku')}
               >
                 <div className="flex items-center gap-1">
@@ -270,9 +270,9 @@ export function BorrowingTable({
                   {sortField === 'jenis_buku' && <ArrowUpDown className="h-3 w-3" />}
                 </div>
               </TableHead>
-              <TableHead className="min-w-[80px] py-2 px-3 text-xs font-semibold">Kode</TableHead>
+              <TableHead className="min-w-20 py-2 px-3 text-xs font-semibold">Kode</TableHead>
               <TableHead 
-                className="min-w-[50px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-12.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('jumlah')}
               >
                 <div className="flex items-center gap-1">
@@ -281,7 +281,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-22.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('tanggal_pinjam')}
               >
                 <div className="flex items-center gap-1">
@@ -290,7 +290,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[90px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-22.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('tanggal_kembali')}
               >
                 <div className="flex items-center gap-1">
@@ -299,7 +299,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-[80px] py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="min-w-20 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-1">
@@ -307,7 +307,7 @@ export function BorrowingTable({
                   {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
                 </div>
               </TableHead>
-              <TableHead className="min-w-[140px] py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>
+              <TableHead className="min-w-35 py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
