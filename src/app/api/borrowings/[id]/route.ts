@@ -42,9 +42,12 @@ export async function PUT(
     // Use validated data for update
     const updateData: Record<string, unknown> = validation.data ? { ...validation.data } : {};
 
-    // Handle return date logic
-    if (!body.tanggal_kembali && (body.jenis_buku || body.tanggal_pinjam)) {
-      // Recalculate if book type or borrow date changed but return date wasn't explicitly set
+    // Active records derive their due date from the borrow date and book type.
+    const isActiveBorrowing = existing.status === 'Dipinjam' || existing.status === 'Terlambat';
+    const bookTypeChanged = body.jenis_buku !== undefined && body.jenis_buku !== existing.jenis_buku;
+    const borrowDateChanged = body.tanggal_pinjam !== undefined && body.tanggal_pinjam !== existing.tanggal_pinjam;
+
+    if (isActiveBorrowing && (bookTypeChanged || borrowDateChanged)) {
       const jenis_buku = String(updateData.jenis_buku || existing.jenis_buku);
       const tanggal_pinjam = String(updateData.tanggal_pinjam || existing.tanggal_pinjam);
       updateData.tanggal_kembali = calculateReturnDate(tanggal_pinjam, jenis_buku);

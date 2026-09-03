@@ -304,7 +304,7 @@ export function BorrowingTable({
                   {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
                 </div>
               </TableHead>
-              {!readOnly && <TableHead className="min-w-35 py-2 px-3 text-xs font-semibold text-right">Aksi</TableHead>}
+              {!readOnly && <TableHead className="sticky right-0 z-20 min-w-35 bg-muted/50 py-2 px-3 text-right text-xs font-semibold shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.4)]">Aksi</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -359,7 +359,7 @@ export function BorrowingTable({
                         {borrowing.status}
                       </Badge>
                     </TableCell>
-                    {!readOnly && <TableCell className="py-2 px-3 text-right">
+                    {!readOnly && <TableCell className="sticky right-0 z-10 bg-background py-2 px-3 text-right shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.4)]">
                       <div className="flex gap-1 justify-end">
                         {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
                           <Button
