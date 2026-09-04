@@ -1,4 +1,4 @@
-import { addDays, parse, format, isValid } from 'date-fns';
+import { addDays, parse, format, isValid, startOfDay } from 'date-fns';
 
 // Calculate return date based on book type
 export const calculateReturnDate = (borrowDate: string, bookType: string): string => {
@@ -34,11 +34,11 @@ export const isOverdue = (returnDate: string, status: string): boolean => {
   
   try {
     const returnD = parse(returnDate, 'dd/MM/yyyy', new Date());
-    const today = new Date();
+    const today = startOfDay(new Date());
     
     if (!isValid(returnD)) return false;
     
-    return returnD < today;
+    return startOfDay(returnD) < today;
   } catch (error) {
     console.error('Error checking overdue status:', error);
     return false;
