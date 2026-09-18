@@ -1,4 +1,4 @@
-import { Borrowing } from './db';
+import { Borrowing } from './types';
 import { isOverdue } from './date-utils';
 
 type BorrowingStatusInput = Pick<

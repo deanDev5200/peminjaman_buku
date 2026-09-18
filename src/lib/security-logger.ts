@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { dbOperations } from '@/lib/db';
 import { getClientMetadata } from '@/lib/request-metadata';
-import type { SecurityEventType } from '@/lib/db';
+import type { SecurityEventType } from '@/lib/types';
 
 export function logSecurityEvent(request: NextRequest, eventType: SecurityEventType): void {
   const metadata = getClientMetadata(request);

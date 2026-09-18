@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { dbOperations } from '@/lib/db';
-import { calculateReturnDate } from '@/lib/date-utils';
+import { calculateReturnDateFromSettings } from '@/lib/date-utils';
 import { validateImportRow } from '@/lib/validation';
+
+function getSettingsForBorrowing(): { borrow_limit_pelajaran: number; borrow_limit_bacaan: number; borrow_limit_guru: number } {
+  return {
+    borrow_limit_pelajaran: Number(dbOperations.getSetting('borrow_limit_pelajaran') || 3),
+    borrow_limit_bacaan: Number(dbOperations.getSetting('borrow_limit_bacaan') || 7),
+    borrow_limit_guru: Number(dbOperations.getSetting('borrow_limit_guru') || 60),
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -85,7 +93,12 @@ export async function POST(request: NextRequest) {
 
         // Recalculate return date if needed
         if (!borrowing.tanggal_kembali || borrowing.status === 'Dipinjam') {
-          borrowing.tanggal_kembali = calculateReturnDate(borrowing.tanggal_pinjam, borrowing.jenis_buku);
+          borrowing.tanggal_kembali = calculateReturnDateFromSettings(
+            borrowing.tanggal_pinjam,
+            borrowing.jenis_buku,
+            borrowing.kelas,
+            getSettingsForBorrowing()
+          );
         }
 
         const key = [

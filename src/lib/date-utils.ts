@@ -1,7 +1,7 @@
 import { addDays, parse, format, isValid, startOfDay } from 'date-fns';
 
 // Calculate return date based on book type
-export const calculateReturnDate = (borrowDate: string, bookType: string): string => {
+export const calculateReturnDate = (borrowDate: string, bookType: string, kelas?: string): string => {
   try {
     const date = parse(borrowDate, 'dd/MM/yyyy', new Date());
     
@@ -10,21 +10,63 @@ export const calculateReturnDate = (borrowDate: string, bookType: string): strin
     }
 
     let daysToAdd: number;
-    const bookTypeLower = bookType.toLowerCase();
-    
-    if (bookTypeLower === 'pelajaran') {
-      daysToAdd = 3;
-    } else if (bookTypeLower === 'bacaan') {
-      daysToAdd = 7;
+
+    if (kelas === 'GURU/PEGAWAI') {
+      daysToAdd = 30;
     } else {
-      daysToAdd = 7; // Default to 7 days for unknown types
+      const bookTypeLower = bookType.toLowerCase();
+      
+      if (bookTypeLower === 'pelajaran') {
+        daysToAdd = 3;
+      } else if (bookTypeLower === 'bacaan') {
+        daysToAdd = 7;
+      } else {
+        daysToAdd = 7;
+      }
     }
 
     const returnDate = addDays(date, daysToAdd);
     return format(returnDate, 'dd/MM/yyyy');
   } catch (error) {
     console.error('Error calculating return date:', error);
-    return borrowDate; // Return original date if calculation fails
+    return borrowDate;
+  }
+};
+
+// Server-side function that uses database settings
+export const calculateReturnDateFromSettings = (
+  borrowDate: string, 
+  bookType: string, 
+  kelas: string,
+  settings: { borrow_limit_pelajaran: number; borrow_limit_bacaan: number; borrow_limit_guru: number }
+): string => {
+  try {
+    const date = parse(borrowDate, 'dd/MM/yyyy', new Date());
+    
+    if (!isValid(date)) {
+      throw new Error('Invalid date format');
+    }
+
+    let daysToAdd: number;
+
+    if (kelas === 'GURU/PEGAWAI') {
+      daysToAdd = settings.borrow_limit_guru || 30;
+    } else {
+      const bookTypeLower = bookType.toLowerCase();
+      if (bookTypeLower === 'pelajaran') {
+        daysToAdd = settings.borrow_limit_pelajaran || 3;
+      } else if (bookTypeLower === 'bacaan') {
+        daysToAdd = settings.borrow_limit_bacaan || 7;
+      } else {
+        daysToAdd = settings.borrow_limit_bacaan || 7;
+      }
+    }
+
+    const returnDate = addDays(date, daysToAdd);
+    return format(returnDate, 'dd/MM/yyyy');
+  } catch (error) {
+    console.error('Error calculating return date from settings:', error);
+    return borrowDate;
   }
 };
 

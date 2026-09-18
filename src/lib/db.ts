@@ -2,9 +2,13 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { resolveBorrowingStatus } from './borrowing-status';
+import type { Borrowing, BorrowingHistory, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput } from './types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Re-export types
+export type { Borrowing, BorrowingHistory, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput };
 
 // Database connection - navigate from src/lib to database folder
 const dbPath = path.join(__dirname, '..', 'database', 'library.db');
@@ -30,59 +34,25 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON security_logs(event_type);
 `);
 
-// Types
-export interface Borrowing {
-  id?: number;
-  nama: string;
-  nis: number;
-  kelas: string;
-  nama_buku: string;
-  jenis_buku: string;
-  kode_buku: string;
-  jumlah: number;
-  tanggal_pinjam: string;
-  tanggal_kembali: string;
-  status: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface AppSetting {
-  key: string;
-  value: string;
-  updated_at?: string;
-}
-
-export type SecurityEventType = 'login' | 'logout';
-
-export interface SecurityLog {
-  id?: number;
-  event_type: SecurityEventType;
-  ip_address: string;
-  user_agent: string;
-  device_type: string;
-  device_name: string;
-  browser: string;
-  os: string;
-  created_at?: string;
-}
-
-export interface SecurityLogInput {
-  event_type: SecurityEventType;
-  ip_address: string;
-  user_agent: string;
-  device_type: string;
-  device_name: string;
-  browser: string;
-  os: string;
-}
-
 // Database operations
 export const dbOperations = {
   // Get all borrowings
-  getAllBorrowings: (): Borrowing[] => {
-    const stmt = db.prepare('SELECT * FROM borrowings ORDER BY created_at DESC');
-    return stmt.all() as Borrowing[];
+  getAllBorrowings: (daysLimit?: number): Borrowing[] => {
+    let query = 'SELECT * FROM borrowings';
+    const params: unknown[] = [];
+    
+    if (daysLimit !== undefined && daysLimit !== null && daysLimit > 0) {
+      const cutoffDate = new Date(Date.now() - daysLimit * 86400000);
+      const year = cutoffDate.getFullYear();
+      const month = String(cutoffDate.getMonth() + 1).padStart(2, '0');
+      const day = String(cutoffDate.getDate()).padStart(2, '0');
+      query += ' WHERE tanggal_pinjam >= ?';
+      params.push(`${day}/${month}/${year}`);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    const stmt = db.prepare(query);
+    return stmt.all(...params) as Borrowing[];
   },
 
   // Get borrowing by ID
@@ -146,14 +116,53 @@ export const dbOperations = {
     stmt.run(status, returnDate, id);
   },
 
-  // Search borrowings by name or NIS
-  searchBorrowings: (keyword: string): Borrowing[] => {
-    const stmt = db.prepare(`
-      SELECT * FROM borrowings 
-      WHERE LOWER(nama) LIKE LOWER(?) OR CAST(nis AS TEXT) LIKE ?
-      ORDER BY created_at DESC
+  // Extend borrowing - record history and update return date
+  extendBorrowing: (id: number, newReturnDate: string, reason: string): void => {
+    const borrowing = db.prepare('SELECT tanggal_kembali FROM borrowings WHERE id = ?').get(id) as { tanggal_kembali: string } | undefined;
+    if (!borrowing) return;
+
+    const insertHistory = db.prepare(`
+      INSERT INTO borrowing_history (borrowing_id, original_tanggal_kembali, new_tanggal_kembali, reason)
+      VALUES (?, ?, ?, ?)
     `);
-    return stmt.all(`%${keyword}%`, `%${keyword}%`) as Borrowing[];
+    insertHistory.run(id, borrowing.tanggal_kembali, newReturnDate, reason);
+
+    const updateStmt = db.prepare(`
+      UPDATE borrowings 
+      SET tanggal_kembali = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `);
+    updateStmt.run(newReturnDate, id);
+  },
+
+  // Get borrowing history
+  getBorrowingHistory: (borrowingId: number): BorrowingHistory[] => {
+    const stmt = db.prepare(`
+      SELECT * FROM borrowing_history 
+      WHERE borrowing_id = ?
+      ORDER BY extended_at DESC
+    `);
+    return stmt.all(borrowingId) as BorrowingHistory[];
+  },
+
+  // Search borrowings
+  searchBorrowings: (keyword: string, daysLimit?: number): Borrowing[] => {
+    let query = `SELECT * FROM borrowings 
+      WHERE LOWER(nama) LIKE LOWER(?) OR CAST(nis AS TEXT) LIKE ?`;
+    const params: unknown[] = [`%${keyword}%`, `%${keyword}%`];
+
+    if (daysLimit !== undefined && daysLimit !== null && daysLimit > 0) {
+      const cutoffDate = new Date(Date.now() - daysLimit * 86400000);
+      const year = cutoffDate.getFullYear();
+      const month = String(cutoffDate.getMonth() + 1).padStart(2, '0');
+      const day = String(cutoffDate.getDate()).padStart(2, '0');
+      query += ' AND tanggal_pinjam >= ?';
+      params.push(`${day}/${month}/${year}`);
+    }
+
+    query += ' ORDER BY created_at DESC';
+    const stmt = db.prepare(query);
+    return stmt.all(...params) as Borrowing[];
   },
 
   syncAllBorrowingStatuses: (): { updated: number; total: number } => {

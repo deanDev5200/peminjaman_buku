@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Borrowing } from '@/lib/db';
+import { Borrowing } from '@/lib/types';
 import { isOverdue } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ interface BorrowingTableProps {
   onEdit?: (borrowing: Borrowing) => void;
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
+  onExtend?: (id: number) => void;
   onSelect?: (borrowing: Borrowing) => void;
   readOnly?: boolean;
   currentPage?: number;
@@ -48,6 +49,7 @@ export function BorrowingTable({
   onEdit, 
   onBulkDelete,
   onReturn, 
+  onExtend,
   onSelect,
   readOnly = false,
   currentPage = 1,
@@ -372,6 +374,20 @@ export function BorrowingTable({
                             className="h-7 px-2 text-xs bg-orange-500 text-white hover:bg-orange-600"
                           >
                             Kembali
+                          </Button>
+                        )}
+                        {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExtend?.(borrowing.id!);
+                            }}
+                            className="h-7 px-2 text-xs bg-blue-500 text-white hover:bg-blue-600"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Perpanjang
                           </Button>
                         )}
                         <Button
