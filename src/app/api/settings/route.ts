@@ -8,6 +8,8 @@ export async function GET() {
       borrow_limit_bacaan: dbOperations.getSetting('borrow_limit_bacaan') || '7',
       borrow_limit_guru: dbOperations.getSetting('borrow_limit_guru') || '30',
       root_view_days: dbOperations.getSetting('root_view_days') || '30',
+      app_title: dbOperations.getSetting('app_title') || 'Jnana Grha Mandara',
+      app_subtitle: dbOperations.getSetting('app_subtitle') || 'Sistem Peminjaman Buku',
     };
     return NextResponse.json(settings);
   } catch (error) {
@@ -26,6 +28,7 @@ export async function PUT(request: NextRequest) {
       'borrow_limit_guru',
       'root_view_days',
     ];
+    const stringKeys = ['app_title', 'app_subtitle'];
 
     for (const key of allowedKeys) {
       if (body[key] !== undefined) {
@@ -37,6 +40,19 @@ export async function PUT(request: NextRequest) {
           );
         }
         dbOperations.setSetting(key, String(value));
+      }
+    }
+
+    for (const key of stringKeys) {
+      if (body[key] !== undefined) {
+        const value = String(body[key]).trim();
+        if (value.length === 0) {
+          return NextResponse.json(
+            { error: `Invalid value for ${key}` },
+            { status: 400 }
+          );
+        }
+        dbOperations.setSetting(key, value);
       }
     }
 

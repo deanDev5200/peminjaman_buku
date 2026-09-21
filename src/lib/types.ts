@@ -29,6 +29,15 @@ export interface AppSetting {
   updated_at?: string;
 }
 
+export interface Settings {
+  borrow_limit_pelajaran: string;
+  borrow_limit_bacaan: string;
+  borrow_limit_guru: string;
+  root_view_days: string;
+  app_title: string;
+  app_subtitle: string;
+}
+
 export type SecurityEventType = 'login' | 'logout';
 
 export interface SecurityLog {

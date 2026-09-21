@@ -17,6 +17,8 @@ export default function AdminSettingsPage() {
     borrow_limit_bacaan: 7,
     borrow_limit_guru: 30,
     root_view_days: 30,
+    app_title: 'Jnana Grha Mandara',
+    app_subtitle: 'Sistem Peminjaman Buku',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,6 +34,8 @@ export default function AdminSettingsPage() {
           borrow_limit_bacaan: parseInt(data.borrow_limit_bacaan, 10) || 7,
           borrow_limit_guru: parseInt(data.borrow_limit_guru, 10) || 30,
           root_view_days: parseInt(data.root_view_days, 10) || 30,
+          app_title: data.app_title ?? 'Jnana Grha Mandara',
+          app_subtitle: data.app_subtitle ?? 'Sistem Peminjaman Buku',
         });
       }
     } catch (err) {
@@ -117,6 +121,42 @@ export default function AdminSettingsPage() {
             )}
 
             <div className="space-y-2">
+              <Label htmlFor="app_title">Judul Aplikasi</Label>
+              <Input
+                id="app_title"
+                type="text"
+                value={settings.app_title}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    app_title: e.target.value,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Nama aplikasi yang ditampilkan di bilah sisi dan halaman utama.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="app_subtitle">Subjudul Aplikasi</Label>
+              <Input
+                id="app_subtitle"
+                type="text"
+                value={settings.app_subtitle}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    app_subtitle: e.target.value,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Deskripsi singkat yang ditampilkan di bawah judul aplikasi.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="borrow_limit_pelajaran">Batas Pinjam Buku Pelajaran (hari)</Label>
               <Input
                 id="borrow_limit_pelajaran"
@@ -169,7 +209,7 @@ export default function AdminSettingsPage() {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Jumlah hari pinjam untuk GURU/PEGAWAI (selalu 1 bulan).
+                Jumlah hari pinjam untuk GURU/PEGAWAI.
               </p>
             </div>
 

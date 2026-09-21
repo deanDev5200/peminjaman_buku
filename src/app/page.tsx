@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
+import { fetchAppSettings } from '@/lib/settings-client';
+import type { Settings } from '@/lib/types';
 
 type BorrowingPayload = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
 import { BorrowingTable } from '@/components/borrowing-table';
@@ -15,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isOverdue } from '@/lib/date-utils';
-import { Plus, Search, Upload, Download, LogOut, Shield, Settings, LayoutGrid, ChevronLeft } from 'lucide-react';
+import { Plus, Search, Upload, Download, LogOut, Shield, Settings as SettingsIcon, LayoutGrid, ChevronLeft } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const getCurrentAcademicYear = () => {
@@ -72,6 +74,14 @@ export default function Home() {
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendingBorrowingId, setExtendingBorrowingId] = useState<number | null>(null);
   const [extendLoading, setExtendLoading] = useState(false);
+  const [appSettings, setAppSettings] = useState<Settings>({
+    borrow_limit_pelajaran: '3',
+    borrow_limit_bacaan: '7',
+    borrow_limit_guru: '30',
+    root_view_days: '30',
+    app_title: 'Jnana Grha Mandara',
+    app_subtitle: 'Sistem Peminjaman Buku',
+  });
 
   const fetchBorrowings = useCallback(async () => {
     try {
@@ -208,6 +218,10 @@ export default function Home() {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void fetchBorrowings();
+      void (async () => {
+        const s = await fetchAppSettings();
+        setAppSettings(s);
+      })();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -502,10 +516,10 @@ export default function Home() {
               <Image src="/school_logo.png" alt="School Logo" width={48} height={48} className="h-12 w-12 object-contain" />
               <Image src="/library_logo.png" alt="Library Logo" width={48} height={48} className="h-12 w-12 object-contain" />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Jnana Grha Mandara</h1>
-              <p className="text-sm text-muted-foreground">Daftar Buku Sedang Dipinjam (30 Hari Terakhir)</p>
-            </div>
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">{appSettings.app_title}</h1>
+                  <p className="text-sm text-muted-foreground">{appSettings.app_subtitle}</p>
+                </div>
           </div>
 
           <Card className="shadow-sm">
@@ -577,7 +591,7 @@ return (
                 href="/admin/settings"
                 className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               >
-                <Settings className="h-5 w-5" />
+                <SettingsIcon className="h-5 w-5" />
                 Pengaturan
               </a>
               <a
@@ -640,10 +654,10 @@ return (
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    Jnana Grha Mandara
+                    {appSettings.app_title}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    Sistem Peminjaman Buku
+                    {appSettings.app_subtitle}
                   </p>
                 </div>
               </div>
