@@ -336,7 +336,7 @@ export function BorrowingTable({
                       />
                     </TableCell>}
                     <TableCell className="py-2 px-3 text-sm font-medium">{borrowing.nama}</TableCell>
-                    <TableCell className="py-2 px-3 text-sm">{borrowing.nis}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm">{borrowing.nis === 0 ? '-' : borrowing.nis}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.kelas}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.nama_buku}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.jenis_buku}</TableCell>
