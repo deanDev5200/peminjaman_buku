@@ -17,8 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isOverdue } from '@/lib/date-utils';
-import { Plus, Search, Upload, Download, LogOut, Shield, Settings as SettingsIcon, LayoutGrid, ChevronLeft } from 'lucide-react';
+import { Plus, Search, Upload, Download, LogOut, Shield, LayoutGrid } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import Sidebar from '@/components/sidebar';
 
 const getCurrentAcademicYear = () => {
   const today = new Date();
@@ -516,7 +517,7 @@ export default function Home() {
               <Image src="/school_logo.png" alt="School Logo" width={48} height={48} className="h-12 w-12 object-contain" />
               <Image src="/library_logo.png" alt="Library Logo" width={48} height={48} className="h-12 w-12 object-contain" />
             </div>
-                <div>
+                <div className="hidden sm:block">
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">{appSettings.app_title}</h1>
                   <p className="text-sm text-muted-foreground">{appSettings.app_subtitle}</p>
                 </div>
@@ -562,72 +563,16 @@ export default function Home() {
 return (
     <div className="min-h-screen bg-muted/40">
       <div className="flex">
-        {/* Sidebar for admin pages */}
         {isAdminPage && (
-          <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}>
-            <div className="flex h-16 items-center justify-between border-b px-4">
-              <div className="flex items-center gap-3">
-                <Image src="/school_logo.png" alt="School Logo" width={32} height={32} className="h-8 w-8 object-contain" />
-                <Image src="/library_logo.png" alt="Library Logo" width={32} height={32} className="h-8 w-8 object-contain" />
-              </div>
-              <button
-                className="lg:hidden p-2 rounded-md hover:bg-accent"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            </div>
-            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-              <a
-                href="/admin/peminjaman"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <LayoutGrid className="h-5 w-5" />
-                Peminjaman
-              </a>
-              <a
-                href="/admin/settings"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <SettingsIcon className="h-5 w-5" />
-                Pengaturan
-              </a>
-              <a
-                href="/admin/security"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Shield className="h-5 w-5" />
-                Keamanan
-              </a>
-            </nav>
-            <div className="border-t p-4">
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <LogOut className="h-5 w-5" />
-                Logout
-              </button>
-            </div>
-          </aside>
-        )}
-
-        {/* Mobile sidebar overlay */}
-        {isAdminPage && isSidebarOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
+          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         )}
 
         {/* Main content */}
-        <main className={`flex-1 ${isAdminPage ? 'lg:ml-0' : ''}`}>
+        <main className={`flex-1 min-w-0 ${isAdminPage ? 'lg:ml-0' : ''}`}>
           <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
             {/* Header */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 sm:gap-4">
                 {isAdminPage && (
                   <button
                     className="lg:hidden p-2 rounded-md hover:bg-accent"
@@ -636,38 +581,38 @@ return (
                     <LayoutGrid className="h-5 w-5" />
                   </button>
                 )}
-                <div className="flex items-center gap-3">
-                  <Image 
-                    src="/school_logo.png" 
-                    alt="School Logo" 
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Image
+                    src="/school_logo.png"
+                    alt="School Logo"
                     width={48}
                     height={48}
-                    className="h-12 w-12 object-contain"
+                    className="h-9 w-9 object-contain sm:h-12 sm:w-12"
                   />
-                  <Image 
-                    src="/library_logo.png" 
-                    alt="Library Logo" 
+                  <Image
+                    src="/library_logo.png"
+                    alt="Library Logo"
                     width={48}
                     height={48}
-                    className="h-12 w-12 object-contain"
+                    className="h-9 w-9 object-contain sm:h-12 sm:w-12"
                   />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                <div className="hidden min-w-0 sm:block">
+                  <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                     {appSettings.app_title}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="truncate text-sm text-muted-foreground">
                     {appSettings.app_subtitle}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="gap-2">
+                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="flex-1 justify-center gap-2 sm:flex-none">
                   <Shield className="h-4 w-4" />
                   Ganti Password
                 </Button>
-                <Button variant="outline" onClick={handleLogout} className="gap-2">
+                <Button variant="outline" onClick={handleLogout} className="flex-1 justify-center gap-2 sm:flex-none">
                   <LogOut className="h-4 w-4" />
                   Logout
                 </Button>
@@ -687,8 +632,8 @@ return (
                       className="w-full pl-9"
                     />
                   </div>
-                  <div className="flex gap-2 flex-wrap justify-start md:justify-end">
-                    <Button onClick={handleNewRecord}>
+                  <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
+                    <Button onClick={handleNewRecord} className="col-span-2 w-full md:col-span-1 md:w-auto">
                       <Plus className="h-4 w-4" />
                       Tambah Peminjaman
                     </Button>
@@ -715,19 +660,19 @@ return (
                         onChange={handleExcelImport}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <Button variant="outline">
+                      <Button variant="outline" className="w-full md:w-auto">
                         <Upload className="h-4 w-4" />
                         Import Excel
                       </Button>
                     </div>
-                    
-                      
-                    <Button variant="outline" onClick={handleExcelExport}>
+
+
+                    <Button variant="outline" onClick={handleExcelExport} className="w-full md:w-auto">
                       <Download className="h-4 w-4" />
                       Export Excel
                     </Button>
 
-                    <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-2">
+                    <div className="col-span-2 flex items-center justify-between gap-2 rounded-md border bg-background px-2 py-2 md:col-span-1">
                       <label className="text-sm font-medium text-muted-foreground">Tahun Ajaran</label>
                       <select
                         value={reportAcademicYear}
@@ -741,7 +686,7 @@ return (
                         ))}
                       </select>
                     </div>
-                    <Button variant="outline" onClick={handleMonthlyReportExport}>
+                    <Button variant="outline" onClick={handleMonthlyReportExport} className="col-span-2 w-full md:col-span-1 md:w-auto">
                       <Download className="h-4 w-4" />
                       Export Laporan Bulanan
                     </Button>
@@ -842,7 +787,7 @@ return (
               <CardHeader>
                 <CardTitle>Daftar Peminjaman Buku</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-2 sm:px-4">
                 {loading ? (
                   <div className="text-center py-8">
                     <p className="text-sm text-muted-foreground">Memuat data...</p>

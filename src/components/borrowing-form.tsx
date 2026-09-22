@@ -210,7 +210,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="nama">Nama</Label>
               <Input
@@ -270,7 +270,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="jenis_buku">Jenis Buku</Label>
               <Select
@@ -297,7 +297,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="jumlah">Jumlah</Label>
               <Input
