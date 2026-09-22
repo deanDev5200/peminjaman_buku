@@ -1,10 +1,12 @@
 'use client';
 
-import { FormEvent, Suspense, useState } from 'react';
+import { FormEvent, Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ShieldCheck } from 'lucide-react';
 import { AppCredit } from '@/components/app-credit';
+import { fetchAppSettings } from '@/lib/settings-client';
+import type { Settings } from '@/lib/types';
 
 function LoginForm() {
   const router = useRouter();
@@ -12,6 +14,14 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appTitle, setAppTitle] = useState('Jnana Grha Mandara');
+
+  useEffect(() => {
+    void (async () => {
+      const s: Settings = await fetchAppSettings();
+      setAppTitle(s.app_title);
+    })();
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -51,7 +61,7 @@ function LoginForm() {
         <div className="mb-6 flex items-center gap-3">
             <Image src="/library_logo.png" alt="Library Logo" width={48} height={48} className="h-12 w-12 object-contain" />
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Jnana Grha Mandara</p>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">{appTitle}</p>
             <h1 className="text-2xl font-semibold">Login Akses</h1>
           </div>
         </div>

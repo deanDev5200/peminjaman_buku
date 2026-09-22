@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbOperations } from '@/lib/db';
-import { calculateReturnDate, getCurrentDate, isOverdue } from '@/lib/date-utils';
+import { calculateReturnDateFromSettings, getCurrentDate, isOverdue } from '@/lib/date-utils';
 
-// PATCH mark as returned
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,8 +14,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
 
+    const settings = {
+      borrow_limit_pelajaran: parseInt(dbOperations.getSetting('borrow_limit_pelajaran') || '3', 10),
+      borrow_limit_bacaan: parseInt(dbOperations.getSetting('borrow_limit_bacaan') || '7', 10),
+      borrow_limit_guru: parseInt(dbOperations.getSetting('borrow_limit_guru') || '60', 10),
+    };
+
     const returnDate = getCurrentDate();
-    const dueDate = calculateReturnDate(existing.tanggal_pinjam, existing.jenis_buku);
+    const dueDate = calculateReturnDateFromSettings(existing.tanggal_pinjam, existing.jenis_buku, existing.kelas, settings);
     const returnStatus = isOverdue(dueDate, 'Dipinjam')
       ? 'Terlambat Dikembalikan'
       : 'Dikembalikan';

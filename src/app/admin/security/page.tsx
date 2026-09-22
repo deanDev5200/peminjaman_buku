@@ -1,21 +1,19 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, LockKeyhole, Shield, RefreshCw } from 'lucide-react';
+import { LockKeyhole, Shield, RefreshCw, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AppCredit } from '@/components/app-credit';
+import Sidebar from '@/components/sidebar';
 
 type SecurityLog = {
   id?: number;
@@ -38,6 +36,7 @@ export default function SecurityAdminPage() {
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logs, setLogs] = useState<SecurityLog[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const checkAccess = useCallback(async () => {
     setLoading(true);
@@ -153,22 +152,27 @@ export default function SecurityAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40 py-10 px-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Security Logs</h1>
-            <p className="text-sm text-muted-foreground">
-              Riwayat sesi login/logout untuk administrator/developer.
-            </p>
-          </div>
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4" />
-              Kembali
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-muted/40">
+      <div className="flex">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className="flex-1 min-w-0 lg:ml-0">
+          <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <button
+                  className="lg:hidden p-2 rounded-md hover:bg-accent"
+                  onClick={() => setIsSidebarOpen(true)}
+                >
+                  <LayoutGrid className="h-5 w-5" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Security Logs</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Riwayat sesi login/logout untuk administrator/developer.
+                  </p>
+                </div>
+              </div>
+            </div>
 
         {loading ? (
           <Card className="shadow-sm">
@@ -239,18 +243,18 @@ export default function SecurityAdminPage() {
               ) : null}
 
               <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
+                <table className="w-full min-w-[640px] caption-bottom text-sm">
+                  <thead>
                     <TableRow className="bg-muted/50">
                       <TableHead>Waktu</TableHead>
                       <TableHead>Event</TableHead>
                       <TableHead>IP Address</TableHead>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Browser</TableHead>
-                      <TableHead>OS</TableHead>
-                      <TableHead>User Agent</TableHead>
+                      <TableHead className="min-w-[180px]">Device</TableHead>
+                      <TableHead className="hidden md:table-cell">Browser</TableHead>
+                      <TableHead className="hidden md:table-cell">OS</TableHead>
+                      <TableHead className="hidden md:table-cell">User Agent</TableHead>
                     </TableRow>
-                  </TableHeader>
+                  </thead>
                   <TableBody>
                     {logs.length === 0 ? (
                       <TableRow>
@@ -276,26 +280,28 @@ export default function SecurityAdminPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm font-mono">{log.ip_address}</TableCell>
-                          <TableCell className="text-sm">
-                            <div>{log.device_name}</div>
+                          <TableCell className="text-sm min-w-[180px] whitespace-normal">
+                            <div className="break-words">{log.device_name}</div>
                             <div className="text-xs text-muted-foreground capitalize">{log.device_type}</div>
                           </TableCell>
-                          <TableCell className="text-sm">{log.browser}</TableCell>
-                          <TableCell className="text-sm">{log.os}</TableCell>
-                          <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={log.user_agent}>
+                          <TableCell className="text-sm hidden md:table-cell">{log.browser}</TableCell>
+                          <TableCell className="text-sm hidden md:table-cell">{log.os}</TableCell>
+                          <TableCell className="max-w-xs truncate text-xs text-muted-foreground hidden md:table-cell" title={log.user_agent}>
                             {log.user_agent}
                           </TableCell>
                         </TableRow>
                       ))
                     )}
                   </TableBody>
-                </Table>
+                </table>
               </div>
             </CardContent>
           </Card>
         )}
 
         <AppCredit />
+        </div>
+        </main>
       </div>
     </div>
   );

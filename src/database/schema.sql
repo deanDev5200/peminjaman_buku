@@ -42,3 +42,22 @@ CREATE TABLE IF NOT EXISTS security_logs (
 
 CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON security_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON security_logs(event_type);
+
+CREATE TABLE IF NOT EXISTS borrowing_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    borrowing_id INTEGER NOT NULL,
+    original_tanggal_kembali TEXT NOT NULL,
+    new_tanggal_kembali TEXT NOT NULL,
+    extended_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    reason TEXT,
+    FOREIGN KEY (borrowing_id) REFERENCES borrowings(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_borrowing_history_borrowing_id ON borrowing_history(borrowing_id);
+
+INSERT INTO settings (key, value) VALUES ('borrow_limit_pelajaran', '3') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('borrow_limit_bacaan', '7') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('borrow_limit_guru', '60') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('root_view_days', '30') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('app_title', 'Jnana Grha Mandara') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('app_subtitle', 'Sistem Peminjaman Buku') ON CONFLICT(key) DO NOTHING;

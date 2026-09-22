@@ -113,20 +113,19 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
     status: initialData?.status || 'Dipinjam'
   });
 
-// Recalculate return date when settings are loaded and field changes
-    useEffect(() => {
-      if (!isEdit && (formData.jenis_buku || formData.kelas)) {
-        const newReturnDate = computeReturnDate(
-          formData.tanggal_pinjam,
-          formData.jenis_buku,
-          formData.kelas
-        );
-        if (newReturnDate !== formData.tanggal_kembali) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setFormData((current) => ({ ...current, tanggal_kembali: newReturnDate }));
-        }
-      }
-    }, [settings, formData.jenis_buku, formData.kelas, formData.tanggal_pinjam, isEdit, computeReturnDate, formData.tanggal_kembali]);
+   // Recalculate return date when settings are loaded and field changes
+   useEffect(() => {
+     if (!isEdit && (formData.jenis_buku || formData.kelas)) {
+       const newReturnDate = computeReturnDate(
+         formData.tanggal_pinjam,
+         formData.jenis_buku,
+         formData.kelas
+       );
+       if (newReturnDate !== formData.tanggal_kembali) {
+         setFormData((current) => ({ ...current, tanggal_kembali: newReturnDate }));
+       }
+     }
+   }, [settings, formData.jenis_buku, formData.kelas, formData.tanggal_pinjam, isEdit, computeReturnDate]);
 
   const handleChange = <K extends keyof BorrowingFormValue>(field: K, value: BorrowingFormValue[K]) => {
     const newFormData = { ...formData, [field]: value };
@@ -210,7 +209,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="nama">Nama</Label>
               <Input
@@ -270,7 +269,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="jenis_buku">Jenis Buku</Label>
               <Select
@@ -297,7 +296,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="jumlah">Jumlah</Label>
               <Input

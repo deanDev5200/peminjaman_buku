@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Borrowing } from '@/lib/db';
+import { Borrowing } from '@/lib/types';
 import { isOverdue } from '@/lib/date-utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ interface BorrowingTableProps {
   onEdit?: (borrowing: Borrowing) => void;
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
+  onExtend?: (id: number) => void;
   onSelect?: (borrowing: Borrowing) => void;
   readOnly?: boolean;
   currentPage?: number;
@@ -48,6 +49,7 @@ export function BorrowingTable({
   onEdit, 
   onBulkDelete,
   onReturn, 
+  onExtend,
   onSelect,
   readOnly = false,
   currentPage = 1,
@@ -232,7 +234,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-17.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="hidden min-w-17.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70 md:table-cell"
                 onClick={() => handleSort('nis')}
               >
                 <div className="flex items-center gap-1">
@@ -241,7 +243,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-22.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="hidden min-w-22.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70 md:table-cell"
                 onClick={() => handleSort('kelas')}
               >
                 <div className="flex items-center gap-1">
@@ -259,7 +261,7 @@ export function BorrowingTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="min-w-20 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
+                className="hidden min-w-20 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70 md:table-cell"
                 onClick={() => handleSort('jenis_buku')}
               >
                 <div className="flex items-center gap-1">
@@ -267,7 +269,7 @@ export function BorrowingTable({
                   {sortField === 'jenis_buku' && <ArrowUpDown className="h-3 w-3" />}
                 </div>
               </TableHead>
-              <TableHead className="min-w-20 py-2 px-3 text-xs font-semibold">Kode</TableHead>
+              <TableHead className="hidden min-w-20 py-2 px-3 text-xs font-semibold md:table-cell">Kode</TableHead>
               <TableHead 
                 className="min-w-12.5 py-2 px-3 text-xs font-semibold cursor-pointer hover:bg-muted/70"
                 onClick={() => handleSort('jumlah')}
@@ -334,11 +336,11 @@ export function BorrowingTable({
                       />
                     </TableCell>}
                     <TableCell className="py-2 px-3 text-sm font-medium">{borrowing.nama}</TableCell>
-                    <TableCell className="py-2 px-3 text-sm">{borrowing.nis}</TableCell>
-                    <TableCell className="py-2 px-3 text-sm">{borrowing.kelas}</TableCell>
+                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.nis === 0 ? '-' : borrowing.nis}</TableCell>
+                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.kelas}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.nama_buku}</TableCell>
-                    <TableCell className="py-2 px-3 text-sm">{borrowing.jenis_buku}</TableCell>
-                    <TableCell className="py-2 px-3 text-sm">{borrowing.kode_buku}</TableCell>
+                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.jenis_buku}</TableCell>
+                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.kode_buku}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.jumlah}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.tanggal_pinjam}</TableCell>
                     <TableCell className={`py-2 px-3 text-sm ${overdue ? 'text-red-600 font-semibold' : ''}`}>
@@ -374,6 +376,20 @@ export function BorrowingTable({
                             Kembali
                           </Button>
                         )}
+                        {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExtend?.(borrowing.id!);
+                            }}
+                            className="h-7 px-2 text-xs bg-blue-500 text-white hover:bg-blue-600"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Perpanjang
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -396,7 +412,7 @@ export function BorrowingTable({
       </div>
 
       {(totalPages > 1 || onItemsPerPageChange) && (
-        <div className="flex items-center justify-between px-2 py-2">
+        <div className="flex flex-col gap-3 px-2 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>
               Halaman {currentPage} dari {totalPages}

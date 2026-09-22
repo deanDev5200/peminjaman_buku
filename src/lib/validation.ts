@@ -1,4 +1,4 @@
-import { Borrowing } from './db';
+import { Borrowing } from './types';
 import { resolveBorrowingStatus } from './borrowing-status';
 
 const CLASS_OPTIONS = [

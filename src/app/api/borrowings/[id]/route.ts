@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbOperations } from '@/lib/db';
-import { calculateReturnDate } from '@/lib/date-utils';
+import { calculateReturnDateFromSettings } from '@/lib/date-utils';
 import { validateBorrowing } from '@/lib/validation';
 
 // PUT update borrowing
@@ -46,11 +46,18 @@ export async function PUT(
     const isActiveBorrowing = existing.status === 'Dipinjam' || existing.status === 'Terlambat';
     const bookTypeChanged = body.jenis_buku !== undefined && body.jenis_buku !== existing.jenis_buku;
     const borrowDateChanged = body.tanggal_pinjam !== undefined && body.tanggal_pinjam !== existing.tanggal_pinjam;
+    const kelasChanged = body.kelas !== undefined && body.kelas !== existing.kelas;
 
-    if (isActiveBorrowing && (bookTypeChanged || borrowDateChanged)) {
+    if (isActiveBorrowing && (bookTypeChanged || borrowDateChanged || kelasChanged)) {
+      const settings = {
+        borrow_limit_pelajaran: parseInt(dbOperations.getSetting('borrow_limit_pelajaran') || '3', 10),
+        borrow_limit_bacaan: parseInt(dbOperations.getSetting('borrow_limit_bacaan') || '7', 10),
+        borrow_limit_guru: parseInt(dbOperations.getSetting('borrow_limit_guru') || '30', 10),
+      };
       const jenis_buku = String(updateData.jenis_buku || existing.jenis_buku);
       const tanggal_pinjam = String(updateData.tanggal_pinjam || existing.tanggal_pinjam);
-      updateData.tanggal_kembali = calculateReturnDate(tanggal_pinjam, jenis_buku);
+      const kelas = String(updateData.kelas || existing.kelas);
+      updateData.tanggal_kembali = calculateReturnDateFromSettings(tanggal_pinjam, jenis_buku, kelas, settings);
     }
 
     dbOperations.updateBorrowing(parsedId, updateData);
