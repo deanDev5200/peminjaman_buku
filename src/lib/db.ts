@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { resolveBorrowingStatus } from './borrowing-status';
@@ -10,8 +11,14 @@ const __dirname = path.dirname(__filename);
 // Re-export types
 export type { Borrowing, BorrowingHistory, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput };
 
-// Database connection - navigate from src/lib to database folder
-const dbPath = path.join(__dirname, '..', 'database', 'library.db');
+// Database connection - navigate from src/lib to database folder.
+// DB_PATH overrides the location (used by standalone/production deploys
+// to keep data outside the deployed code folder). Also honored by
+// `npm run init-db` and `npm run migrate-db`.
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(__dirname, '..', 'database', 'library.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new Database(dbPath);
 
 // Enable foreign keys

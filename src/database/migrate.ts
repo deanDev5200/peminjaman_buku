@@ -52,10 +52,13 @@ function main(): void {
   }
 
   // Optional first argument: path to the database file to migrate.
-  // Defaults to library.db next to this script.
+  // Otherwise DB_PATH is honored, falling back to library.db next to this script.
+  // Precedence: CLI argument > DB_PATH > default.
   const dbPath = process.argv[2]
     ? path.resolve(process.cwd(), process.argv[2])
-    : path.join(__dirname, 'library.db');
+    : process.env.DB_PATH
+      ? path.resolve(process.env.DB_PATH)
+      : path.join(__dirname, 'library.db');
 
   const dbExisted = fs.existsSync(dbPath);
 
@@ -67,6 +70,7 @@ function main(): void {
     console.log(`No database found at ${dbPath}; a new one will be created.`);
   }
 
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
 
   try {
