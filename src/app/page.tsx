@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { parse, isValid } from 'date-fns';
+import { parse, isValid, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Borrowing } from '@/lib/db';
@@ -80,6 +80,8 @@ export default function Home() {
     borrow_limit_pelajaran: '3',
     borrow_limit_bacaan: '7',
     borrow_limit_guru: '30',
+    max_extend_count: '1',
+    due_soon_days: '7',
     root_view_days: '30',
     app_title: 'Jnana Grha Mandara',
     app_subtitle: 'Sistem Peminjaman Buku',
@@ -528,6 +530,44 @@ export default function Home() {
     TerlambatDikembalikan: borrowings.filter((borrowing) => borrowing.status === 'Terlambat Dikembalikan').length,
   }), [borrowings]);
 
+  const parsedMaxExtendCount = parseInt(appSettings.max_extend_count, 10);
+  const maxExtendCount = Number.isNaN(parsedMaxExtendCount) ? 1 : Math.max(0, parsedMaxExtendCount);
+
+  const overdueStats = useMemo(() => {
+    const today = startOfDay(new Date());
+    const parsedDueSoon = parseInt(appSettings.due_soon_days, 10);
+    const dueSoonWindow = Number.isNaN(parsedDueSoon) ? 7 : Math.max(1, parsedDueSoon);
+    let overdue = 0;
+    let dueSoon = 0;
+    let healthy = 0;
+
+    for (const borrowing of borrowings) {
+      if (borrowing.status !== 'Dipinjam' && borrowing.status !== 'Terlambat') continue;
+
+      if (borrowing.status === 'Terlambat' || isOverdue(borrowing.tanggal_kembali, borrowing.status)) {
+        overdue += 1;
+        continue;
+      }
+
+      const dueDate = parse(borrowing.tanggal_kembali, 'dd/MM/yyyy', new Date());
+      if (isValid(dueDate)) {
+        const diff = differenceInCalendarDays(startOfDay(dueDate), today);
+        if (diff >= 0 && diff <= dueSoonWindow) {
+          dueSoon += 1;
+          continue;
+        }
+      }
+
+      healthy += 1;
+    }
+
+    return { overdue, dueSoon, healthy, active: overdue + dueSoon + healthy, dueSoonWindow };
+  }, [borrowings, appSettings.due_soon_days]);
+
+  const handleStatClick = (status: string) => {
+    handleFilter({ ...filters, status });
+  };
+
   if (isPublicPage) {
     return (
       <div className="min-h-screen bg-muted/40 py-10 px-4">
@@ -621,6 +661,46 @@ return (
                   Logout
                 </Button>
               </div>
+            </div>
+
+            {/* Overdue dashboard */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Card
+                className="shadow-sm cursor-pointer hover:shadow-md"
+                onClick={() => handleStatClick('Terlambat')}
+                title="Tampilkan yang terlambat"
+              >
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-2xl font-bold text-red-600">{overdueStats.overdue}</div>
+                  <div className="text-xs text-muted-foreground">Terlambat — perlu ditagih</div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm" title={`Jatuh tempo dalam ${overdueStats.dueSoonWindow} hari ke depan`}>
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-2xl font-bold text-amber-600">{overdueStats.dueSoon}</div>
+                  <div className="text-xs text-muted-foreground">Jatuh tempo ≤ {overdueStats.dueSoonWindow} hari</div>
+                </CardContent>
+              </Card>
+              <Card
+                className="shadow-sm cursor-pointer hover:shadow-md"
+                onClick={() => handleStatClick('Dipinjam')}
+                title="Tampilkan yang sedang dipinjam"
+              >
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-2xl font-bold text-blue-600">{overdueStats.healthy}</div>
+                  <div className="text-xs text-muted-foreground">Dipinjam — aman</div>
+                </CardContent>
+              </Card>
+              <Card
+                className="shadow-sm cursor-pointer hover:shadow-md"
+                onClick={() => handleStatClick('')}
+                title="Tampilkan semua data"
+              >
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-2xl font-bold">{overdueStats.active}</div>
+                  <div className="text-xs text-muted-foreground">Total aktif</div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Search and Actions */}
@@ -842,6 +922,7 @@ return (
                     onBulkDelete={handleBulkDelete}
                     onReturn={handleReturn}
                     onExtend={handleExtend}
+                    maxExtendCount={maxExtendCount}
                     onShowHistory={handleShowHistory}
                     onSelect={handleSelect}
                     currentPage={currentPage}

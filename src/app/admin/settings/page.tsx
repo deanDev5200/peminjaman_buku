@@ -12,6 +12,8 @@ export default function AdminSettingsPage() {
     borrow_limit_pelajaran: 3,
     borrow_limit_bacaan: 7,
     borrow_limit_guru: 30,
+    max_extend_count: 1,
+    due_soon_days: 7,
     root_view_days: 30,
     app_title: 'Jnana Grha Mandara',
     app_subtitle: 'Sistem Peminjaman Buku',
@@ -25,10 +27,13 @@ export default function AdminSettingsPage() {
       const response = await fetch('/api/settings');
       const data = await response.json();
       if (response.ok) {
+        const parsedMaxExtend = parseInt(data.max_extend_count, 10);
         setSettings({
           borrow_limit_pelajaran: parseInt(data.borrow_limit_pelajaran, 10) || 3,
           borrow_limit_bacaan: parseInt(data.borrow_limit_bacaan, 10) || 7,
           borrow_limit_guru: parseInt(data.borrow_limit_guru, 10) || 30,
+          max_extend_count: Number.isNaN(parsedMaxExtend) ? 1 : parsedMaxExtend,
+          due_soon_days: parseInt(data.due_soon_days, 10) || 7,
           root_view_days: parseInt(data.root_view_days, 10) || 30,
           app_title: data.app_title ?? 'Jnana Grha Mandara',
           app_subtitle: data.app_subtitle ?? 'Sistem Peminjaman Buku',
@@ -199,6 +204,44 @@ export default function AdminSettingsPage() {
               />
               <p className="text-xs text-muted-foreground">
                 Jumlah hari pinjam untuk GURU/PEGAWAI.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="max_extend_count">Batas Perpanjangan per Peminjaman (kali)</Label>
+              <Input
+                id="max_extend_count"
+                type="number"
+                min="0"
+                value={settings.max_extend_count}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    max_extend_count: parseInt(e.target.value, 10) || 0,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Jumlah maksimal perpanjangan untuk satu peminjaman. Isi 0 untuk menonaktifkan perpanjangan.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="due_soon_days">Batas Jatuh Tempo Segera (hari)</Label>
+              <Input
+                id="due_soon_days"
+                type="number"
+                min="1"
+                value={settings.due_soon_days}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    due_soon_days: parseInt(e.target.value, 10) || 0,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Peminjaman yang jatuh tempo dalam rentang ini ditandai sebagai segera jatuh tempo di dasbor.
               </p>
             </div>
 

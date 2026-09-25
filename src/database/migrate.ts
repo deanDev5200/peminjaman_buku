@@ -11,6 +11,8 @@ const EXPECTED_SETTINGS = [
   'borrow_limit_pelajaran',
   'borrow_limit_bacaan',
   'borrow_limit_guru',
+  'max_extend_count',
+  'due_soon_days',
   'root_view_days',
   'app_title',
   'app_subtitle',

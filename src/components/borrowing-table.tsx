@@ -29,6 +29,7 @@ interface BorrowingTableProps {
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
   onExtend?: (id: number) => void;
+  maxExtendCount?: number;
   onShowHistory?: (borrowing: Borrowing) => void;
   onSelect?: (borrowing: Borrowing) => void;
   readOnly?: boolean;
@@ -51,6 +52,7 @@ export function BorrowingTable({
   onBulkDelete,
   onReturn, 
   onExtend,
+  maxExtendCount = 1,
   onShowHistory,
   onSelect,
   readOnly = false,
@@ -396,7 +398,7 @@ export function BorrowingTable({
                             Kembali
                           </Button>
                         )}
-                        {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
+                        {borrowing.status === 'Dipinjam' && (borrowing.extend_count ?? 0) < maxExtendCount && (
                           <Button
                             size="sm"
                             variant="outline"
