@@ -7,9 +7,9 @@ import Image from 'next/image';
 import { Borrowing } from '@/lib/db';
 import { BorrowingForm } from '@/components/borrowing-form';
 import { fetchAppSettings } from '@/lib/settings-client';
-import type { Settings } from '@/lib/types';
+import type { BorrowingHistory, Settings } from '@/lib/types';
 
-type BorrowingPayload = Omit<Borrowing, 'id' | 'created_at' | 'updated_at'>;
+type BorrowingPayload = Omit<Borrowing, 'id' | 'created_at' | 'updated_at' | 'extend_count'>;
 import { BorrowingTable } from '@/components/borrowing-table';
 import { AppCredit } from '@/components/app-credit';
 import { Button } from '@/components/ui/button';
@@ -75,6 +75,10 @@ export default function Home() {
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendingBorrowingId, setExtendingBorrowingId] = useState<number | null>(null);
   const [extendLoading, setExtendLoading] = useState(false);
+  const [historyBorrowing, setHistoryBorrowing] = useState<Borrowing | null>(null);
+  const [historyData, setHistoryData] = useState<BorrowingHistory[]>([]);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [appSettings, setAppSettings] = useState<Settings>({
     borrow_limit_pelajaran: '3',
     borrow_limit_bacaan: '7',
@@ -283,6 +287,25 @@ export default function Home() {
       alert('Gagal memperpanjang peminjaman');
     } finally {
       setExtendLoading(false);
+    }
+  };
+
+  const handleShowHistory = async (borrowing: Borrowing) => {
+    setHistoryBorrowing(borrowing);
+    setHistoryDialogOpen(true);
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/borrowings/${borrowing.id}/history`);
+      if (response.ok) {
+        setHistoryData(await response.json());
+      } else {
+        setHistoryData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching borrowing history:', error);
+      setHistoryData([]);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -782,6 +805,45 @@ return (
               </DialogContent>
             </Dialog>
 
+            {/* History Dialog */}
+            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Riwayat Perpanjangan</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 pt-2">
+                  {historyBorrowing && (
+                    <p className="text-sm text-muted-foreground">
+                      {historyBorrowing.nama} — {historyBorrowing.nama_buku} ({historyBorrowing.tanggal_pinjam})
+                    </p>
+                  )}
+                  {historyLoading ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Memuat riwayat...</p>
+                  ) : historyData.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Belum ada riwayat perpanjangan.</p>
+                  ) : (
+                    <ul className="max-h-64 space-y-2 overflow-y-auto">
+                      {historyData.map((h, index) => (
+                        <li key={h.id ?? index} className="rounded-md border px-3 py-2 text-sm">
+                          <div className="font-medium">
+                            {h.original_tanggal_kembali} → {h.new_tanggal_kembali}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {h.extended_at ?? ''}{h.reason ? ` • ${h.reason}` : ''}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>
+                      Tutup
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             {/* Table */}
             <Card className="shadow-sm">
               <CardHeader>
@@ -799,6 +861,7 @@ return (
                     onBulkDelete={handleBulkDelete}
                     onReturn={handleReturn}
                     onExtend={handleExtend}
+                    onShowHistory={handleShowHistory}
                     onSelect={handleSelect}
                     currentPage={currentPage}
                     totalPages={totalPages}

@@ -10,6 +10,7 @@ export interface Borrowing {
   tanggal_pinjam: string;
   tanggal_kembali: string;
   status: string;
+  extend_count?: number;
   created_at?: string;
   updated_at?: string;
 }
