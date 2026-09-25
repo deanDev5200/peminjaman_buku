@@ -17,9 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isOverdue } from '@/lib/date-utils';
-import { Plus, Search, Upload, Download, LogOut, Shield, LayoutGrid } from 'lucide-react';
+import { Plus, Search, Upload, Download, LogOut, Shield } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import Sidebar from '@/components/sidebar';
 
 const getCurrentAcademicYear = () => {
   const today = new Date();
@@ -51,7 +50,6 @@ const getAcademicYearOptions = () => {
 export default function Home() {
   const pathname = usePathname();
   const isPublicPage = pathname === '/';
-  const isAdminPage = pathname.startsWith('/admin/');
   const router = useRouter();
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [editingBorrowing, setEditingBorrowing] = useState<Borrowing | null>(null);
@@ -70,7 +68,6 @@ export default function Home() {
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [extendReason, setExtendReason] = useState('');
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendingBorrowingId, setExtendingBorrowingId] = useState<number | null>(null);
@@ -584,26 +581,10 @@ export default function Home() {
   }
 
 return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="flex">
-        {isAdminPage && (
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        )}
-
-        {/* Main content */}
-        <main className={`flex-1 min-w-0 ${isAdminPage ? 'lg:ml-0' : ''}`}>
-          <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
+    <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
             {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 sm:gap-4">
-                {isAdminPage && (
-                  <button
-                    className="lg:hidden p-2 rounded-md hover:bg-accent"
-                    onClick={() => setIsSidebarOpen(true)}
-                  >
-                    <LayoutGrid className="h-5 w-5" />
-                  </button>
-                )}
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Image
                     src="/school_logo.png"
@@ -900,9 +881,6 @@ return (
             </Card>
 
             <AppCredit className="pt-2" />
-          </div>
-        </main>
-      </div>
     </div>
   );
 }

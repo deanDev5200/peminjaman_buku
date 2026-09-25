@@ -1,17 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AppCredit } from '@/components/app-credit';
-import Sidebar from '@/components/sidebar';
 
 export default function AdminSettingsPage() {
-  const router = useRouter();
   const [settings, setSettings] = useState({
     borrow_limit_pelajaran: 3,
     borrow_limit_bacaan: 7,
@@ -20,7 +16,6 @@ export default function AdminSettingsPage() {
     app_title: 'Jnana Grha Mandara',
     app_subtitle: 'Sistem Peminjaman Buku',
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -80,37 +75,20 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="flex">
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          <main className="flex-1 lg:ml-0">
-            <div className="max-w-7xl mx-auto py-10 px-4">
-              <Card className="shadow-sm">
-                <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  Memuat pengaturan...
-                </CardContent>
-              </Card>
-            </div>
-          </main>
-        </div>
+      <div className="max-w-7xl mx-auto py-10 px-4">
+        <Card className="shadow-sm">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Memuat pengaturan...
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="flex">
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className="flex-1 lg:ml-0">
-          <div className="max-w-2xl mx-auto space-y-6 py-10 px-4">
+    <div className="max-w-2xl mx-auto space-y-6 py-10 px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <button
-                  className="lg:hidden p-2 rounded-md hover:bg-accent"
-                  onClick={() => setIsSidebarOpen(true)}
-                >
-                  <LayoutGrid className="h-5 w-5" />
-                </button>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">Pengaturan Sistem</h1>
                   <p className="text-sm text-muted-foreground">
@@ -244,9 +222,6 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => router.push('/admin/peminjaman')}>
-                Batal
-              </Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
               </Button>
@@ -255,9 +230,6 @@ export default function AdminSettingsPage() {
         </Card>
 
         <AppCredit />
-        </div>
-        </main>
-      </div>
     </div>
   );
 }

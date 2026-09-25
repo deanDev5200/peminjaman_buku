@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { LayoutGrid, Settings as SettingsIcon, Shield, LogOut, ChevronLeft } from 'lucide-react';
 
@@ -10,8 +10,15 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const NAV_ITEMS = [
+  { href: '/admin/peminjaman', label: 'Peminjaman', icon: LayoutGrid },
+  { href: '/admin/settings', label: 'Pengaturan', icon: SettingsIcon },
+  { href: '/admin/security', label: 'Keamanan', icon: Shield },
+];
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     try {
@@ -45,27 +52,22 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <a
-            href="/admin/peminjaman"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <LayoutGrid className="h-5 w-5" />
-            Peminjaman
-          </a>
-          <a
-            href="/admin/settings"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <SettingsIcon className="h-5 w-5" />
-            Pengaturan
-          </a>
-          <a
-            href="/admin/security"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <Shield className="h-5 w-5" />
-            Keamanan
-          </a>
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ${
+                  isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="border-t p-4">
           <button
