@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS borrowing_history (
     new_tanggal_kembali TEXT NOT NULL,
     extended_at TEXT DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
+    kind TEXT NOT NULL DEFAULT 'extend',
     FOREIGN KEY (borrowing_id) REFERENCES borrowings(id) ON DELETE CASCADE
 );
 

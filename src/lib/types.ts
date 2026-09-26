@@ -22,6 +22,7 @@ export interface BorrowingHistory {
   new_tanggal_kembali: string;
   extended_at?: string;
   reason?: string;
+  kind?: string;
 }
 
 export interface AppSetting {

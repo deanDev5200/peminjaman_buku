@@ -143,8 +143,11 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
     }
   };
 
+  const [formError, setFormError] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     const isTeacherOrStaff = formData.kelas === 'GURU/PEGAWAI';
 
@@ -152,24 +155,24 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
     if (!formData.nama || !formData.kelas ||
         !formData.nama_buku || !formData.jenis_buku || !formData.kode_buku ||
         !formData.jumlah || !formData.tanggal_pinjam) {
-      alert('Semua field harus diisi!');
+      setFormError('Semua field harus diisi!');
       return;
     }
 
     if (!isTeacherOrStaff && !formData.nis) {
-      alert('NIS harus diisi untuk siswa!');
+      setFormError('NIS harus diisi untuk siswa!');
       return;
     }
 
     if (isNaN(parseInt(formData.jumlah)) || (!isTeacherOrStaff && isNaN(parseInt(formData.nis)))) {
-      alert('NIS dan Jumlah harus berupa angka!');
+      setFormError('NIS dan Jumlah harus berupa angka!');
       return;
     }
 
     if (!isTeacherOrStaff) {
       const nis = parseInt(formData.nis, 10);
       if (nis < 1000 || nis > 4999) {
-        alert('NIS tidak valid!');
+        setFormError('NIS tidak valid!');
         return;
       }
     }
@@ -189,6 +192,7 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
   };
 
   const handleReset = () => {
+    setFormError('');
     setFormData({
       nama: '',
       nis: '',
@@ -365,6 +369,12 @@ export function BorrowingForm({ onSubmit, initialData, onCancel, isEdit = false 
               </Select>
             </div>
           )}
+
+          {formError ? (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {formError}
+            </div>
+          ) : null}
 
           <div className="flex gap-2 pt-4">
             <Button type="submit" className="flex-1">

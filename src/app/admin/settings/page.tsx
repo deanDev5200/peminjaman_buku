@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AppCredit } from '@/components/app-credit';
+import { toast } from 'sonner';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
@@ -65,7 +66,7 @@ export default function AdminSettingsPage() {
       });
 
       if (response.ok) {
-        alert('Pengaturan berhasil disimpan!');
+        toast.success('Pengaturan berhasil disimpan!');
       } else {
         const data = await response.json();
         setError(data.error || 'Gagal menyimpan pengaturan.');

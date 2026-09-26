@@ -53,11 +53,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_borrowing_history_borrowing_id ON borrowing_history(borrowing_id);
 `);
 
+if (
+  !(db.prepare('PRAGMA table_info(borrowing_history)').all() as { name: string }[]).some(
+    (col) => col.name === 'kind'
+  )
+) {
+  db.exec(`ALTER TABLE borrowing_history ADD COLUMN kind TEXT NOT NULL DEFAULT 'extend'`);
+}
+
 // Database operations
 export const dbOperations = {
   // Get all borrowings
   getAllBorrowings: (daysLimit?: number): Borrowing[] => {
-    let query = `SELECT b.*, COUNT(h.id) AS extend_count FROM borrowings b
+    let query = `SELECT b.*, COUNT(CASE WHEN h.kind = 'extend' THEN 1 END) AS extend_count FROM borrowings b
       LEFT JOIN borrowing_history h ON h.borrowing_id = b.id`;
     const params: unknown[] = [];
     
@@ -77,7 +85,7 @@ export const dbOperations = {
 
   // Get borrowing by ID
   getBorrowingById: (id: number): Borrowing | undefined => {
-    const stmt = db.prepare(`SELECT b.*, COUNT(h.id) AS extend_count FROM borrowings b
+    const stmt = db.prepare(`SELECT b.*, COUNT(CASE WHEN h.kind = 'extend' THEN 1 END) AS extend_count FROM borrowings b
       LEFT JOIN borrowing_history h ON h.borrowing_id = b.id
       WHERE b.id = ? GROUP BY b.id`);
     return stmt.get(id) as Borrowing | undefined;
@@ -144,8 +152,8 @@ export const dbOperations = {
     if (!borrowing) return;
 
     const insertHistory = db.prepare(`
-      INSERT INTO borrowing_history (borrowing_id, original_tanggal_kembali, new_tanggal_kembali, reason)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO borrowing_history (borrowing_id, original_tanggal_kembali, new_tanggal_kembali, reason, kind)
+      VALUES (?, ?, ?, ?, 'extend')
     `);
     insertHistory.run(id, borrowing.tanggal_kembali, newReturnDate, reason);
 
@@ -155,6 +163,15 @@ export const dbOperations = {
       WHERE id = ?
     `);
     updateStmt.run(newReturnDate, id);
+  },
+
+  // Log a return-date change to the audit history without touching the borrowing itself
+  logReturnDateChange: (id: number, oldReturnDate: string, newReturnDate: string, reason: string): void => {
+    const insertHistory = db.prepare(`
+      INSERT INTO borrowing_history (borrowing_id, original_tanggal_kembali, new_tanggal_kembali, reason, kind)
+      VALUES (?, ?, ?, ?, 'edit')
+    `);
+    insertHistory.run(id, oldReturnDate, newReturnDate, reason);
   },
 
   // Get borrowing history
@@ -169,7 +186,7 @@ export const dbOperations = {
 
   // Search borrowings
   searchBorrowings: (keyword: string, daysLimit?: number): Borrowing[] => {
-    let query = `SELECT b.*, COUNT(h.id) AS extend_count FROM borrowings b
+    let query = `SELECT b.*, COUNT(CASE WHEN h.kind = 'extend' THEN 1 END) AS extend_count FROM borrowings b
       LEFT JOIN borrowing_history h ON h.borrowing_id = b.id
       WHERE (LOWER(b.nama) LIKE LOWER(?) OR CAST(b.nis AS TEXT) LIKE ?)`;
     const params: unknown[] = [`%${keyword}%`, `%${keyword}%`];
@@ -213,7 +230,7 @@ export const dbOperations = {
   // Get overdue borrowings
   getOverdueBorrowings: (): Borrowing[] => {
     const stmt = db.prepare(`
-      SELECT b.*, COUNT(h.id) AS extend_count FROM borrowings b
+      SELECT b.*, COUNT(CASE WHEN h.kind = 'extend' THEN 1 END) AS extend_count FROM borrowings b
       LEFT JOIN borrowing_history h ON h.borrowing_id = b.id
       WHERE b.status = 'Dipinjam'
       GROUP BY b.id
