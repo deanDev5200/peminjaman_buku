@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutGrid, Settings as SettingsIcon, Shield, LogOut, ChevronLeft } from 'lucide-react';
+import { LayoutGrid, Settings as SettingsIcon, Shield, History, LogOut, ChevronLeft } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   { href: '/admin/peminjaman', label: 'Peminjaman', icon: LayoutGrid },
+  { href: '/admin/audit', label: 'Riwayat', icon: History },
   { href: '/admin/settings', label: 'Pengaturan', icon: SettingsIcon },
   { href: '/admin/security', label: 'Keamanan', icon: Shield },
 ];

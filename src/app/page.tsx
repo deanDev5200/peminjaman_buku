@@ -70,7 +70,7 @@ export default function Home() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, string | string[]>>({});
   const [extendReason, setExtendReason] = useState('');
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extendingBorrowingId, setExtendingBorrowingId] = useState<number | null>(null);
@@ -158,18 +158,30 @@ export default function Home() {
   const filteredBorrowings = useMemo(() => {
     let filtered = [...borrowings];
 
-    if (filters.status) {
-      if (filters.status === 'Terlambat') {
-        filtered = filtered.filter((b) => isOverdue(b.tanggal_kembali, b.status));
-      } else {
-        filtered = filtered.filter((b) => b.status === filters.status);
-      }
+    const toFilterArray = (value: string | string[] | undefined): string[] => {
+      if (value == null) return [];
+      if (Array.isArray(value)) return value.filter((v) => v !== '' && v !== 'all');
+      if (value === '' || value === 'all') return [];
+      return [value];
+    };
+
+    const statusValues = toFilterArray(filters.status);
+    if (statusValues.length > 0) {
+      filtered = filtered.filter((b) =>
+        statusValues.some((status) =>
+          status === 'Terlambat'
+            ? b.status === 'Terlambat' || isOverdue(b.tanggal_kembali, b.status)
+            : b.status === status
+        )
+      );
     }
-    if (filters.jenis_buku) {
-      filtered = filtered.filter((b) => b.jenis_buku === filters.jenis_buku);
+    const jenisValues = toFilterArray(filters.jenis_buku);
+    if (jenisValues.length > 0) {
+      filtered = filtered.filter((b) => jenisValues.includes(b.jenis_buku));
     }
-    if (filters.kelas) {
-      filtered = filtered.filter((b) => b.kelas === filters.kelas);
+    const kelasValues = toFilterArray(filters.kelas);
+    if (kelasValues.length > 0) {
+      filtered = filtered.filter((b) => kelasValues.includes(b.kelas));
     }
 
     if (sortField) {
@@ -214,7 +226,7 @@ export default function Home() {
     setCurrentPage(1);
   };
 
-  const handleFilter = (newFilters: Record<string, string>) => {
+  const handleFilter = (newFilters: Record<string, string | string[]>) => {
     setFilters(newFilters);
     setCurrentPage(1); // Reset to page 1 when filters change
   };
@@ -624,7 +636,7 @@ export default function Home() {
   }, [borrowings, appSettings.due_soon_days]);
 
   const handleStatClick = (status: string) => {
-    handleFilter({ ...filters, status });
+    handleFilter({ ...filters, status: status ? [status] : [] });
   };
 
   const handleShowBorrowerHistory = (borrowing: Borrowing) => {

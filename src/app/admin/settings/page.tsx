@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AppCredit } from '@/components/app-credit';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { toast } from 'sonner';
 
 export default function AdminSettingsPage() {
@@ -22,6 +23,9 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [recalcDialogOpen, setRecalcDialogOpen] = useState(false);
+  const [recalcLoading, setRecalcLoading] = useState(false);
+  const [activeCount, setActiveCount] = useState<number | null>(null);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -76,6 +80,43 @@ export default function AdminSettingsPage() {
       setError('Gagal menyimpan pengaturan.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRecalcOpen = async () => {
+    setActiveCount(null);
+    setRecalcDialogOpen(true);
+    try {
+      const response = await fetch('/api/borrowings');
+      if (response.ok) {
+        const data = await response.json();
+        setActiveCount(
+          (data as { status: string }[]).filter((b) => b.status === 'Dipinjam' || b.status === 'Terlambat').length
+        );
+      }
+    } catch (err) {
+      console.error('Error counting active borrowings:', err);
+    }
+  };
+
+  const handleRecalcConfirm = async () => {
+    setRecalcLoading(true);
+    try {
+      const response = await fetch('/api/borrowings/recalculate', { method: 'POST' });
+      const result = await response.json();
+      if (response.ok) {
+        toast.success(
+          `Hitung ulang selesai! Diperbarui: ${result.updated}, dilewati: ${result.skippedModified}, tetap: ${result.unchanged} (dari ${result.totalActive} aktif).`
+        );
+        setRecalcDialogOpen(false);
+      } else {
+        toast.error('Gagal menghitung ulang: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error recalculating return dates:', err);
+      toast.error('Gagal menghitung ulang tanggal kembali');
+    } finally {
+      setRecalcLoading(false);
     }
   };
 
@@ -265,13 +306,30 @@ export default function AdminSettingsPage() {
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={handleRecalcOpen}>
+                Hitung Ulang Tanggal Aktif
+              </Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
               </Button>
             </div>
           </CardContent>
         </Card>
+
+        <ConfirmDialog
+          open={recalcDialogOpen}
+          onOpenChange={setRecalcDialogOpen}
+          title="Hitung ulang tanggal kembali?"
+          description={
+            activeCount === null
+              ? 'Memuat jumlah peminjaman aktif...'
+              : `${activeCount} peminjaman aktif akan dihitung ulang dari tanggal pinjam memakai pengaturan terbaru. Data yang pernah diperpanjang atau diubah manual dilewati dan setiap perubahan dicatat di riwayat.`
+          }
+          confirmLabel="Ya, hitung ulang"
+          loading={recalcLoading}
+          onConfirm={handleRecalcConfirm}
+        />
 
         <AppCredit />
     </div>
