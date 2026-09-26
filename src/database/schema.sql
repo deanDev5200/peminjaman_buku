@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS borrowing_history (
     new_tanggal_kembali TEXT NOT NULL,
     extended_at TEXT DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
+    kind TEXT NOT NULL DEFAULT 'extend',
     FOREIGN KEY (borrowing_id) REFERENCES borrowings(id) ON DELETE CASCADE
 );
 
@@ -58,6 +59,8 @@ CREATE INDEX IF NOT EXISTS idx_borrowing_history_borrowing_id ON borrowing_histo
 INSERT INTO settings (key, value) VALUES ('borrow_limit_pelajaran', '3') ON CONFLICT(key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('borrow_limit_bacaan', '7') ON CONFLICT(key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('borrow_limit_guru', '30') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('max_extend_count', '1') ON CONFLICT(key) DO NOTHING;
+INSERT INTO settings (key, value) VALUES ('due_soon_days', '7') ON CONFLICT(key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('root_view_days', '30') ON CONFLICT(key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('app_title', 'Jnana Grha Mandara') ON CONFLICT(key) DO NOTHING;
 INSERT INTO settings (key, value) VALUES ('app_subtitle', 'Sistem Peminjaman Buku') ON CONFLICT(key) DO NOTHING;

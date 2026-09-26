@@ -1,26 +1,24 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AppCredit } from '@/components/app-credit';
-import Sidebar from '@/components/sidebar';
+import { toast } from 'sonner';
 
 export default function AdminSettingsPage() {
-  const router = useRouter();
   const [settings, setSettings] = useState({
     borrow_limit_pelajaran: 3,
     borrow_limit_bacaan: 7,
     borrow_limit_guru: 30,
+    max_extend_count: 1,
+    due_soon_days: 7,
     root_view_days: 30,
     app_title: 'Jnana Grha Mandara',
     app_subtitle: 'Sistem Peminjaman Buku',
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -30,10 +28,13 @@ export default function AdminSettingsPage() {
       const response = await fetch('/api/settings');
       const data = await response.json();
       if (response.ok) {
+        const parsedMaxExtend = parseInt(data.max_extend_count, 10);
         setSettings({
           borrow_limit_pelajaran: parseInt(data.borrow_limit_pelajaran, 10) || 3,
           borrow_limit_bacaan: parseInt(data.borrow_limit_bacaan, 10) || 7,
           borrow_limit_guru: parseInt(data.borrow_limit_guru, 10) || 30,
+          max_extend_count: Number.isNaN(parsedMaxExtend) ? 1 : parsedMaxExtend,
+          due_soon_days: parseInt(data.due_soon_days, 10) || 7,
           root_view_days: parseInt(data.root_view_days, 10) || 30,
           app_title: data.app_title ?? 'Jnana Grha Mandara',
           app_subtitle: data.app_subtitle ?? 'Sistem Peminjaman Buku',
@@ -65,7 +66,7 @@ export default function AdminSettingsPage() {
       });
 
       if (response.ok) {
-        alert('Pengaturan berhasil disimpan!');
+        toast.success('Pengaturan berhasil disimpan!');
       } else {
         const data = await response.json();
         setError(data.error || 'Gagal menyimpan pengaturan.');
@@ -80,37 +81,20 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="flex">
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          <main className="flex-1 lg:ml-0">
-            <div className="max-w-7xl mx-auto py-10 px-4">
-              <Card className="shadow-sm">
-                <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                  Memuat pengaturan...
-                </CardContent>
-              </Card>
-            </div>
-          </main>
-        </div>
+      <div className="max-w-7xl mx-auto py-10 px-4">
+        <Card className="shadow-sm">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Memuat pengaturan...
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="flex">
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className="flex-1 lg:ml-0">
-          <div className="max-w-2xl mx-auto space-y-6 py-10 px-4">
+    <div className="max-w-2xl mx-auto space-y-6 py-10 px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <button
-                  className="lg:hidden p-2 rounded-md hover:bg-accent"
-                  onClick={() => setIsSidebarOpen(true)}
-                >
-                  <LayoutGrid className="h-5 w-5" />
-                </button>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">Pengaturan Sistem</h1>
                   <p className="text-sm text-muted-foreground">
@@ -225,6 +209,44 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="max_extend_count">Batas Perpanjangan per Peminjaman (kali)</Label>
+              <Input
+                id="max_extend_count"
+                type="number"
+                min="0"
+                value={settings.max_extend_count}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    max_extend_count: parseInt(e.target.value, 10) || 0,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Jumlah maksimal perpanjangan untuk satu peminjaman. Isi 0 untuk menonaktifkan perpanjangan.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="due_soon_days">Batas Jatuh Tempo Segera (hari)</Label>
+              <Input
+                id="due_soon_days"
+                type="number"
+                min="1"
+                value={settings.due_soon_days}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    due_soon_days: parseInt(e.target.value, 10) || 0,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Peminjaman yang jatuh tempo dalam rentang ini ditandai sebagai segera jatuh tempo di dasbor.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="root_view_days">Jangkauan Tampilan Halaman Utama (hari)</Label>
               <Input
                 id="root_view_days"
@@ -244,9 +266,6 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => router.push('/admin/peminjaman')}>
-                Batal
-              </Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
               </Button>
@@ -255,9 +274,6 @@ export default function AdminSettingsPage() {
         </Card>
 
         <AppCredit />
-        </div>
-        </main>
-      </div>
     </div>
   );
 }

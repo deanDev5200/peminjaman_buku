@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
     // Process data rows
     let imported = 0;
     let errors = 0;
-    const errorDetails: string[] = [];
+    let skippedDuplicates = 0;
+    const rowErrors: { row: number; errors: string[] }[] = [];
+    const MAX_REPORTED_ROWS = 100;
     const existingBorrowings = dbOperations.getAllBorrowings();
     const seen = new Set<string>();
 
@@ -77,15 +79,26 @@ export async function POST(request: NextRequest) {
 
     for (let i = 1; i < jsonData.length; i++) {
       const row = jsonData[i] as unknown[];
+      const excelRow = i + 1;
       if (!row || row.length === 0) continue;
+
+      const pushRowError = (messages: string[]) => {
+        errors++;
+        if (rowErrors.length < MAX_REPORTED_ROWS) {
+          const prefix = `Baris ${excelRow}: `;
+          rowErrors.push({
+            row: excelRow,
+            errors: messages.map((m) => (m.startsWith(prefix) ? m.slice(prefix.length) : m)),
+          });
+        }
+      };
 
       try {
         // Validate the row using comprehensive validation
-        const validation = validateImportRow(row, i + 1);
+        const validation = validateImportRow(row, excelRow);
 
         if (!validation.valid || !validation.data) {
-          errors++;
-          errorDetails.push(...validation.errors);
+          pushRowError(validation.errors);
           continue;
         }
 
@@ -115,6 +128,7 @@ export async function POST(request: NextRequest) {
         ].join('|');
 
         if (seen.has(key)) {
+          skippedDuplicates++;
           continue;
         }
 
@@ -123,19 +137,19 @@ export async function POST(request: NextRequest) {
         imported++;
       } catch (error) {
         console.error('Error importing row:', i, error);
-        errors++;
-        errorDetails.push(`Baris ${i + 1}: Error processing row`);
+        pushRowError([`Baris ${excelRow}: Error processing row`]);
       }
     }
 
     dbOperations.syncAllBorrowingStatuses();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Import completed',
       imported,
       errors,
+      skippedDuplicates,
       total: jsonData.length - 1,
-      errorDetails: errorDetails.length > 0 ? errorDetails.slice(0, 10) : undefined // Show first 10 errors
+      rowErrors
     });
   } catch (error) {
     console.error('Error importing Excel:', error);

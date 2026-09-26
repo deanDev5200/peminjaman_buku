@@ -10,6 +10,7 @@ export interface Borrowing {
   tanggal_pinjam: string;
   tanggal_kembali: string;
   status: string;
+  extend_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -21,6 +22,7 @@ export interface BorrowingHistory {
   new_tanggal_kembali: string;
   extended_at?: string;
   reason?: string;
+  kind?: string;
 }
 
 export interface AppSetting {
@@ -33,12 +35,14 @@ export interface Settings {
   borrow_limit_pelajaran: string;
   borrow_limit_bacaan: string;
   borrow_limit_guru: string;
+  max_extend_count: string;
+  due_soon_days: string;
   root_view_days: string;
   app_title: string;
   app_subtitle: string;
 }
 
-export type SecurityEventType = 'login' | 'logout';
+export type SecurityEventType = 'login' | 'logout' | 'login_failed';
 
 export interface SecurityLog {
   id?: number;

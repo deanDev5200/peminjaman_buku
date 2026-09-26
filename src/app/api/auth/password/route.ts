@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clearAuthCookie } from '@/lib/auth';
-import { getStoredPassword, setStoredPassword } from '@/lib/password-store';
+import { setStoredPassword, verifyPassword } from '@/lib/password-store';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password baru minimal 6 karakter' }, { status: 400 });
     }
 
-    if (currentPassword !== getStoredPassword()) {
+    if (!(await verifyPassword(currentPassword))) {
       return NextResponse.json({ error: 'Password lama salah' }, { status: 401 });
     }
 
-    setStoredPassword(newPassword);
+    await setStoredPassword(newPassword);
 
     const response = NextResponse.json({ ok: true, message: 'Password berhasil diubah' });
     return clearAuthCookie(response, request);

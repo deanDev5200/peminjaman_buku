@@ -29,6 +29,9 @@ interface BorrowingTableProps {
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
   onExtend?: (id: number) => void;
+  maxExtendCount?: number;
+  onShowHistory?: (borrowing: Borrowing) => void;
+  onShowBorrowerHistory?: (borrowing: Borrowing) => void;
   onSelect?: (borrowing: Borrowing) => void;
   readOnly?: boolean;
   currentPage?: number;
@@ -50,6 +53,9 @@ export function BorrowingTable({
   onBulkDelete,
   onReturn, 
   onExtend,
+  maxExtendCount = 1,
+  onShowHistory,
+  onShowBorrowerHistory,
   onSelect,
   readOnly = false,
   currentPage = 1,
@@ -86,7 +92,6 @@ export function BorrowingTable({
 
   const handleBulkDelete = async () => {
     if (visibleSelectedIds.size === 0 || !onBulkDelete) return;
-    if (!confirm(`Apakah Anda yakin ingin menghapus ${visibleSelectedIds.size} data ini?`)) return;
 
     try {
       await onBulkDelete(Array.from(visibleSelectedIds));
@@ -336,7 +341,23 @@ export function BorrowingTable({
                       />
                     </TableCell>}
                     <TableCell className="py-2 px-3 text-sm font-medium">{borrowing.nama}</TableCell>
-                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.nis === 0 ? '-' : borrowing.nis}</TableCell>
+                    <TableCell className="hidden py-2 px-3 text-sm md:table-cell">
+                      {onShowBorrowerHistory ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShowBorrowerHistory?.(borrowing);
+                          }}
+                          className="font-medium text-blue-600 hover:underline"
+                          title="Lihat riwayat peminjam"
+                        >
+                          {borrowing.nis === 0 ? '-' : borrowing.nis}
+                        </button>
+                      ) : (
+                        <>{borrowing.nis === 0 ? '-' : borrowing.nis}</>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.kelas}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.nama_buku}</TableCell>
                     <TableCell className="hidden py-2 px-3 text-sm md:table-cell">{borrowing.jenis_buku}</TableCell>
@@ -344,8 +365,26 @@ export function BorrowingTable({
                     <TableCell className="py-2 px-3 text-sm">{borrowing.jumlah}</TableCell>
                     <TableCell className="py-2 px-3 text-sm">{borrowing.tanggal_pinjam}</TableCell>
                     <TableCell className={`py-2 px-3 text-sm ${overdue ? 'text-red-600 font-semibold' : ''}`}>
-                      {borrowing.tanggal_kembali}
-                      {overdue && ' ⚠'}
+                      <div className="flex flex-col gap-1">
+                        <span>
+                          {borrowing.tanggal_kembali}
+                          {overdue && ' ⚠'}
+                        </span>
+                        {(borrowing.extend_count ?? 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onShowHistory?.(borrowing);
+                            }}
+                            className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 hover:bg-amber-200"
+                            title="Lihat riwayat perpanjangan"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Diperpanjang {borrowing.extend_count}x
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="py-2 px-3 text-sm">
                       <Badge
@@ -376,7 +415,7 @@ export function BorrowingTable({
                             Kembali
                           </Button>
                         )}
-                        {(borrowing.status === 'Dipinjam' || borrowing.status === 'Terlambat') && (
+                        {borrowing.status === 'Dipinjam' && (borrowing.extend_count ?? 0) < maxExtendCount && (
                           <Button
                             size="sm"
                             variant="outline"

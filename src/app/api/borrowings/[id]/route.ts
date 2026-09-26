@@ -60,6 +60,25 @@ export async function PUT(
       updateData.tanggal_kembali = calculateReturnDateFromSettings(tanggal_pinjam, jenis_buku, kelas, settings);
     }
 
+    // Audit any return-date change into borrowing_history so manual edits
+    // leave the same trail as extensions.
+    const recalculated = isActiveBorrowing && (bookTypeChanged || borrowDateChanged || kelasChanged);
+    const finalReturnDate = updateData.tanggal_kembali !== undefined
+      ? String(updateData.tanggal_kembali)
+      : existing.tanggal_kembali;
+    if (finalReturnDate !== existing.tanggal_kembali) {
+      const manualDateSent =
+        body.tanggal_kembali !== undefined && String(body.tanggal_kembali) !== existing.tanggal_kembali;
+      dbOperations.logReturnDateChange(
+        parsedId,
+        existing.tanggal_kembali,
+        finalReturnDate,
+        !recalculated && manualDateSent
+          ? 'Diubah manual via edit'
+          : 'Dihitung ulang karena perubahan data peminjaman'
+      );
+    }
+
     dbOperations.updateBorrowing(parsedId, updateData);
     dbOperations.syncAllBorrowingStatuses();
     const updated = dbOperations.getBorrowingById(parsedId);

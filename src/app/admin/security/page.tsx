@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { LockKeyhole, Shield, RefreshCw, LayoutGrid } from 'lucide-react';
+import { LockKeyhole, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AppCredit } from '@/components/app-credit';
-import Sidebar from '@/components/sidebar';
+import type { SecurityEventType } from '@/lib/types';
 
 type SecurityLog = {
   id?: number;
-  event_type: 'login' | 'logout';
+  event_type: SecurityEventType;
   ip_address: string;
   user_agent: string;
   device_type: string;
@@ -36,7 +36,6 @@ export default function SecurityAdminPage() {
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logs, setLogs] = useState<SecurityLog[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const checkAccess = useCallback(async () => {
     setLoading(true);
@@ -152,19 +151,9 @@ export default function SecurityAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="flex">
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <main className="flex-1 min-w-0 lg:ml-0">
-          <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
+    <div className="max-w-7xl mx-auto space-y-6 py-10 px-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <button
-                  className="lg:hidden p-2 rounded-md hover:bg-accent"
-                  onClick={() => setIsSidebarOpen(true)}
-                >
-                  <LayoutGrid className="h-5 w-5" />
-                </button>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">Security Logs</h1>
                   <p className="text-sm text-muted-foreground">
@@ -273,10 +262,12 @@ export default function SecurityAdminPage() {
                               className={
                                 log.event_type === 'login'
                                   ? 'bg-blue-500 text-white'
-                                  : 'bg-slate-500 text-white'
+                                  : log.event_type === 'login_failed'
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-slate-500 text-white'
                               }
                             >
-                              {log.event_type}
+                              {log.event_type === 'login_failed' ? 'login gagal' : log.event_type}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm font-mono">{log.ip_address}</TableCell>
@@ -300,9 +291,6 @@ export default function SecurityAdminPage() {
         )}
 
         <AppCredit />
-        </div>
-        </main>
-      </div>
     </div>
   );
 }

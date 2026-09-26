@@ -17,9 +17,27 @@ export async function POST(
       return NextResponse.json({ error: 'Borrowing not found' }, { status: 404 });
     }
 
-    if (existing.status !== 'Dipinjam' && existing.status !== 'Terlambat') {
+    if (existing.status === 'Terlambat') {
+      return NextResponse.json(
+        { error: 'Buku yang sudah terlambat harus dikembalikan dulu dan tidak bisa diperpanjang' },
+        { status: 400 }
+      );
+    }
+
+    if (existing.status !== 'Dipinjam') {
       return NextResponse.json(
         { error: 'Hanya buku yang sedang dipinjam yang bisa diperpanjang' },
+        { status: 400 }
+      );
+    }
+
+    const rawMaxExtend = parseInt(dbOperations.getSetting('max_extend_count') ?? '1', 10);
+    const maxExtendCount = Number.isNaN(rawMaxExtend) ? 1 : Math.max(0, rawMaxExtend);
+    const extendCount = existing.extend_count ?? 0;
+
+    if (extendCount >= maxExtendCount) {
+      return NextResponse.json(
+        { error: `Batas perpanjangan tercapai (maksimal ${maxExtendCount}x)` },
         { status: 400 }
       );
     }

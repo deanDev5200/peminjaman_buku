@@ -12,7 +12,8 @@ const COL_WIDTHS = [
   { wch: 8 },
   { wch: 15 },
   { wch: 15 },
-  { wch: 12 }
+  { wch: 12 },
+  { wch: 13 }
 ];
 
 function toWorkbookRows(borrowings: typeof dbOperations.getAllBorrowings extends () => infer T ? T : never) {
@@ -26,7 +27,8 @@ function toWorkbookRows(borrowings: typeof dbOperations.getAllBorrowings extends
     'Jumlah': b.jumlah,
     'Tanggal Pinjam': b.tanggal_pinjam,
     'Tanggal Kembali': b.tanggal_kembali,
-    'Status': b.status
+    'Status': b.status,
+    'Perpanjangan': b.extend_count ?? 0
   }));
 }
 
