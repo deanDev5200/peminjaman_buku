@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Borrowing } from '@/lib/types';
 import { isOverdue } from '@/lib/date-utils';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -13,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw, X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -41,10 +42,170 @@ interface BorrowingTableProps {
   onItemsPerPageChange?: (items: number) => void;
   totalItems?: number;
   onSort?: (field: string, direction: 'asc' | 'desc') => void;
-  onFilter?: (filters: Record<string, string>) => void;
+  onFilter?: (filters: Record<string, string | string[]>) => void;
   sortField?: string;
   sortDirection?: 'asc' | 'desc';
-  filters?: Record<string, string>;
+  filters?: Record<string, string | string[]>;
+}
+
+const STATUS_OPTIONS = [
+  'Dipinjam',
+  'Dikembalikan',
+  'Terlambat',
+  'Terlambat Dikembalikan',
+];
+
+const JENIS_BUKU_OPTIONS = ['Pelajaran', 'Bacaan'];
+
+const KELAS_OPTIONS = [
+  'GURU/PEGAWAI',
+  'X TKJ 1',
+  'X TKJ 2',
+  'X DPIB 1',
+  'X DPIB 2',
+  'X TO 1',
+  'X TO 2',
+  'XI TKJ 1',
+  'XI TKJ 2',
+  'XI DPIB 1',
+  'XI DPIB 2',
+  'XI TO 1',
+  'XI TO 2',
+  'XII TKJ 1',
+  'XII TKJ 2',
+  'XII DPIB 1',
+  'XII DPIB 2',
+  'XII TO 1',
+  'XII TO 2',
+];
+
+function toSelectedArray(value: string | string[] | undefined): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.filter((v) => v !== '' && v !== 'all');
+  if (value === '' || value === 'all') return [];
+  return [value];
+}
+
+interface MultiSelectFilterProps {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  triggerClassName?: string;
+  dropdownClassName?: string;
+}
+
+function MultiSelectFilter({
+  label,
+  options,
+  selected,
+  onChange,
+  triggerClassName,
+  dropdownClassName,
+}: MultiSelectFilterProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const toggleValue = (value: string) => {
+    if (selected.includes(value)) {
+      onChange(selected.filter((v) => v !== value));
+    } else {
+      onChange([...selected, value]);
+    }
+  };
+
+  const allSelected = options.length > 0 && selected.length === options.length;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          'h-8 min-w-32 justify-between gap-2 text-xs font-normal',
+          selected.length > 0 && 'border-primary/50 bg-primary/5',
+          triggerClassName
+        )}
+      >
+        <span className="truncate">
+          {selected.length === 0
+            ? label
+            : selected.length === 1
+              ? selected[0]
+              : `${label} (${selected.length})`}
+        </span>
+        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 opacity-60 transition-transform', open && 'rotate-180')} />
+      </Button>
+
+      {open && (
+        <div
+          className={cn(
+            'absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-md border bg-background shadow-lg',
+            dropdownClassName
+          )}
+        >
+          <div className="flex items-center justify-between border-b px-2 py-1.5">
+            <button
+              type="button"
+              onClick={() => onChange(allSelected ? [] : [...options])}
+              className="text-[11px] font-medium text-primary hover:underline"
+            >
+              {allSelected ? 'Hapus semua' : 'Pilih semua'}
+            </button>
+            {selected.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-[11px] text-muted-foreground hover:underline"
+              >
+                Bersihkan
+              </button>
+            )}
+          </div>
+          <div className="max-h-60 overflow-y-auto p-1">
+            {options.map((option) => {
+              const checked = selected.includes(option);
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => toggleValue(option)}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted"
+                >
+                  <Checkbox
+                    checked={checked}
+                    tabIndex={-1}
+                    className="pointer-events-none h-4 w-4"
+                  />
+                  <span className={cn('flex-1 truncate', checked && 'font-medium')}>{option}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function BorrowingTable({ 
@@ -106,15 +267,36 @@ export function BorrowingTable({
     onSort?.(field, newDirection);
   };
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: string, value: string[]) => {
     const newFilters = { ...filters, [key]: value };
     onFilter?.(newFilters);
   };
 
+  const handleRemoveFilterValue = (key: string, value: string) => {
+    const current = toSelectedArray(filters[key]);
+    onFilter?.({ ...filters, [key]: current.filter((v) => v !== value) });
+  };
+
   const clearFilters = () => {
-    const clearedFilters = Object.keys(filters).reduce((acc, key) => ({ ...acc, [key]: '' }), {});
+    const clearedFilters: Record<string, string | string[]> = { ...filters };
+    for (const key of Object.keys(clearedFilters)) {
+      clearedFilters[key] = [];
+    }
+    clearedFilters.status = [];
+    clearedFilters.jenis_buku = [];
+    clearedFilters.kelas = [];
     onFilter?.(clearedFilters);
   };
+
+  const selectedStatus = toSelectedArray(filters.status);
+  const selectedJenis = toSelectedArray(filters.jenis_buku);
+  const selectedKelas = toSelectedArray(filters.kelas);
+  const activeFilterCount = selectedStatus.length + selectedJenis.length + selectedKelas.length;
+  const activeFilterChips: { key: string; value: string }[] = [
+    ...selectedStatus.map((value) => ({ key: 'status', value })),
+    ...selectedJenis.map((value) => ({ key: 'jenis_buku', value })),
+    ...selectedKelas.map((value) => ({ key: 'kelas', value })),
+  ];
 
   const visibleSelectedIds = new Set(
     borrowings
@@ -127,95 +309,85 @@ export function BorrowingTable({
   return (
     <div className="space-y-3">
       {/* Filters */}
-      {!readOnly && <div className="flex flex-wrap gap-3 items-center p-3 bg-muted/30 rounded-lg border">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Filter:</span>
+      {!readOnly && (
+        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Filter:</span>
+            </div>
+
+            <MultiSelectFilter
+              label="Status"
+              options={STATUS_OPTIONS}
+              selected={selectedStatus}
+              onChange={(value) => handleFilterChange('status', value)}
+              triggerClassName="w-36"
+            />
+
+            <MultiSelectFilter
+              label="Jenis Buku"
+              options={JENIS_BUKU_OPTIONS}
+              selected={selectedJenis}
+              onChange={(value) => handleFilterChange('jenis_buku', value)}
+              triggerClassName="w-36"
+            />
+
+            <MultiSelectFilter
+              label="Kelas"
+              options={KELAS_OPTIONS}
+              selected={selectedKelas}
+              onChange={(value) => handleFilterChange('kelas', value)}
+              triggerClassName="w-36"
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              disabled={activeFilterCount === 0}
+              className="h-8 text-xs"
+            >
+              Reset Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </Button>
+
+            <div className="flex-1" />
+
+            {selectedIds.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="h-8 text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Hapus {selectedIds.size} Data
+              </Button>
+            )}
+          </div>
+
+          {activeFilterChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {activeFilterChips.map(({ key, value }) => (
+                <Badge
+                  key={`${key}-${value}`}
+                  variant="secondary"
+                  className="inline-flex items-center gap-1 pr-1 text-[11px] font-normal"
+                >
+                  <span className="max-w-40 truncate">{value}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFilterValue(key, value)}
+                    className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                    aria-label={`Hapus filter ${value}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
-        
-        <Select
-          value={filters.status || 'all'}
-          onValueChange={(value) => handleFilterChange('status', value === 'all' || value == null ? '' : value)}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="Dipinjam">Dipinjam</SelectItem>
-            <SelectItem value="Dikembalikan">Dikembalikan</SelectItem>
-            <SelectItem value="Terlambat">Terlambat</SelectItem>
-            <SelectItem value="Terlambat Dikembalikan">Terlambat Dikembalikan</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.jenis_buku || 'all'}
-          onValueChange={(value) => handleFilterChange('jenis_buku', value === 'all' || value == null ? '' : value)}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue placeholder="Jenis Buku" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Jenis</SelectItem>
-            <SelectItem value="Pelajaran">Pelajaran</SelectItem>
-            <SelectItem value="Bacaan">Bacaan</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={filters.kelas || 'all'}
-          onValueChange={(value) => handleFilterChange('kelas', value === 'all' || value == null ? '' : value)}
-        >
-          <SelectTrigger className="h-8 w-32 text-xs">
-            <SelectValue placeholder="Kelas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Kelas</SelectItem>
-            <SelectItem value="GURU/PEGAWAI">GURU/PEGAWAI</SelectItem>
-            <SelectItem value="X TKJ 1">X TKJ 1</SelectItem>
-            <SelectItem value="X TKJ 2">X TKJ 2</SelectItem>
-            <SelectItem value="X DPIB 1">X DPIB 1</SelectItem>
-            <SelectItem value="X DPIB 2">X DPIB 2</SelectItem>
-            <SelectItem value="X TO 1">X TO 1</SelectItem>
-            <SelectItem value="X TO 2">X TO 2</SelectItem>
-            <SelectItem value="XI TKJ 1">XI TKJ 1</SelectItem>
-            <SelectItem value="XI TKJ 2">XI TKJ 2</SelectItem>
-            <SelectItem value="XI DPIB 1">XI DPIB 1</SelectItem>
-            <SelectItem value="XI DPIB 2">XI DPIB 2</SelectItem>
-            <SelectItem value="XI TO 1">XI TO 1</SelectItem>
-            <SelectItem value="XI TO 2">XI TO 2</SelectItem>
-            <SelectItem value="XII TKJ 1">XII TKJ 1</SelectItem>
-            <SelectItem value="XII TKJ 2">XII TKJ 2</SelectItem>
-            <SelectItem value="XII DPIB 1">XII DPIB 1</SelectItem>
-            <SelectItem value="XII DPIB 2">XII DPIB 2</SelectItem>
-            <SelectItem value="XII TO 1">XII TO 1</SelectItem>
-            <SelectItem value="XII TO 2">XII TO 2</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={clearFilters}
-          className="h-8 text-xs"
-        >
-          Reset Filter
-        </Button>
-
-        <div className="flex-1" />
-
-        {selectedIds.size > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleBulkDelete}
-            className="h-8 text-xs"
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Hapus {selectedIds.size} Data
-          </Button>
-        )}
-      </div>}
+      )}
 
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -406,7 +578,7 @@ export function BorrowingTable({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={(e) => {
+                            onClick={(e: { stopPropagation: () => void; }) => {
                               e.stopPropagation();
                               onReturn?.(borrowing.id!);
                             }}
@@ -419,7 +591,7 @@ export function BorrowingTable({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={(e) => {
+                            onClick={(e: { stopPropagation: () => void; }) => {
                               e.stopPropagation();
                               onExtend?.(borrowing.id!);
                             }}
@@ -432,7 +604,7 @@ export function BorrowingTable({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={(e) => {
+                          onClick={(e: { stopPropagation: () => void; }) => {
                             e.stopPropagation();
                             onEdit?.(borrowing);
                           }}

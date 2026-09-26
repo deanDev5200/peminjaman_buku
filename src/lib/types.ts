@@ -25,6 +25,13 @@ export interface BorrowingHistory {
   kind?: string;
 }
 
+export interface BorrowingHistoryEntry extends BorrowingHistory {
+  nama?: string;
+  nis?: number;
+  kelas?: string;
+  nama_buku?: string;
+}
+
 export interface AppSetting {
   key: string;
   value: string;

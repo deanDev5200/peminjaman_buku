@@ -3,13 +3,13 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { resolveBorrowingStatus } from './borrowing-status';
-import type { Borrowing, BorrowingHistory, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput } from './types';
+import type { Borrowing, BorrowingHistory, BorrowingHistoryEntry, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput } from './types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Re-export types
-export type { Borrowing, BorrowingHistory, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput };
+export type { Borrowing, BorrowingHistory, BorrowingHistoryEntry, AppSetting, SecurityEventType, SecurityLog, SecurityLogInput };
 
 // Database connection - navigate from src/lib to database folder.
 // DB_PATH overrides the location (used by standalone/production deploys
@@ -174,6 +174,12 @@ export const dbOperations = {
     insertHistory.run(id, oldReturnDate, newReturnDate, reason);
   },
 
+  // IDs of borrowings that have any history entries (extensions or manual edits)
+  getBorrowingIdsWithHistory: (): number[] => {
+    const stmt = db.prepare('SELECT DISTINCT borrowing_id AS id FROM borrowing_history');
+    return (stmt.all() as { id: number }[]).map((row) => row.id);
+  },
+
   // Get borrowing history
   getBorrowingHistory: (borrowingId: number): BorrowingHistory[] => {
     const stmt = db.prepare(`
@@ -182,6 +188,18 @@ export const dbOperations = {
       ORDER BY extended_at DESC
     `);
     return stmt.all(borrowingId) as BorrowingHistory[];
+  },
+
+  // Get global history across all borrowings, newest first
+  getAllBorrowingHistory: (limit = 200): BorrowingHistoryEntry[] => {
+    const stmt = db.prepare(`
+      SELECT h.*, b.nama, b.nis, b.kelas, b.nama_buku
+      FROM borrowing_history h
+      LEFT JOIN borrowings b ON b.id = h.borrowing_id
+      ORDER BY h.extended_at DESC, h.id DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as BorrowingHistoryEntry[];
   },
 
   // Search borrowings
