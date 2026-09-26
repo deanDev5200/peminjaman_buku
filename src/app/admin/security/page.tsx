@@ -13,10 +13,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AppCredit } from '@/components/app-credit';
+import type { SecurityEventType } from '@/lib/types';
 
 type SecurityLog = {
   id?: number;
-  event_type: 'login' | 'logout';
+  event_type: SecurityEventType;
   ip_address: string;
   user_agent: string;
   device_type: string;
@@ -261,10 +262,12 @@ export default function SecurityAdminPage() {
                               className={
                                 log.event_type === 'login'
                                   ? 'bg-blue-500 text-white'
-                                  : 'bg-slate-500 text-white'
+                                  : log.event_type === 'login_failed'
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-slate-500 text-white'
                               }
                             >
-                              {log.event_type}
+                              {log.event_type === 'login_failed' ? 'login gagal' : log.event_type}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm font-mono">{log.ip_address}</TableCell>

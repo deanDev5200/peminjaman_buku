@@ -42,7 +42,7 @@ export interface Settings {
   app_subtitle: string;
 }
 
-export type SecurityEventType = 'login' | 'logout';
+export type SecurityEventType = 'login' | 'logout' | 'login_failed';
 
 export interface SecurityLog {
   id?: number;
