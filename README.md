@@ -184,4 +184,4 @@ The included `schema.sql` only defines table structure — no sample or real stu
 
 ## License
 
-[MIT](LICENSE) — feel free to use or adapt this for your own school/library.
+[GPL-3.0-or-later](LICENSE) — free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See `LICENSE` for the full text.
