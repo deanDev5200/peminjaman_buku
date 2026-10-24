@@ -38,9 +38,10 @@ export async function proxy(request: NextRequest) {
   const isPublicApiRoute =
     pathname === '/api/auth/login' ||
     pathname === '/api/auth/logout' ||
+    (pathname === '/api/settings' && request.method === 'GET') ||
     (pathname === '/api/borrowings' &&
       request.method === 'GET' &&
-        request.nextUrl.searchParams.get('status') === 'active');
+      request.nextUrl.searchParams.get('status') === 'active');
 
   if (pathname.startsWith('/api')) {
     if (isPublicApiRoute) {

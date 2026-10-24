@@ -94,8 +94,8 @@ export const dbOperations = {
       const year = cutoffDate.getFullYear();
       const month = String(cutoffDate.getMonth() + 1).padStart(2, '0');
       const day = String(cutoffDate.getDate()).padStart(2, '0');
-      query += ' WHERE b.tanggal_pinjam >= ?';
-      params.push(`${day}/${month}/${year}`);
+      query += " WHERE date(substr(b.tanggal_pinjam, 7, 4) || '-' || substr(b.tanggal_pinjam, 4, 2) || '-' || substr(b.tanggal_pinjam, 1, 2)) >= date(?)";
+      params.push(`${year}-${month}-${day}`);
     }
     
     query += ' GROUP BY b.id ORDER BY b.created_at DESC';
@@ -234,8 +234,8 @@ export const dbOperations = {
       const year = cutoffDate.getFullYear();
       const month = String(cutoffDate.getMonth() + 1).padStart(2, '0');
       const day = String(cutoffDate.getDate()).padStart(2, '0');
-      query += ' AND b.tanggal_pinjam >= ?';
-      params.push(`${day}/${month}/${year}`);
+      query += " AND date(substr(b.tanggal_pinjam, 7, 4) || '-' || substr(b.tanggal_pinjam, 4, 2) || '-' || substr(b.tanggal_pinjam, 1, 2)) >= date(?)";
+      params.push(`${year}-${month}-${day}`);
     }
 
     query += ' GROUP BY b.id ORDER BY b.created_at DESC';

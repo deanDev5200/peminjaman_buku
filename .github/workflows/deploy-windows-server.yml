@@ -12,7 +12,7 @@ env:
   APP_PORT: 4000
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,6 +31,11 @@ jobs:
         run: npm run lint --if-present
         continue-on-error: true
 
+  prepare-server:
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Setup deployment directory
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -49,6 +54,11 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "npm install -g pm2; npm install -g pm2-windows-startup"
 
+  deploy-build:
+    needs: prepare-server
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Stop application
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -67,15 +77,38 @@ jobs:
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
           script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; git config --global credential.helper store; echo 'https://${{ secrets.GITHUB_TOKEN }}@github.com' > $env:USERPROFILE\.git-credentials; git fetch origin; git checkout main; git pull origin main"
 
-      - name: Install dependencies, prepare database, and build
+      - name: Install dependencies
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.WINDOWS_SERVER_HOST }}
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; npm ci; if (!(Test-Path 'src\database\library.db')) { Write-Host 'No existing database found, initializing...'; npm run init-db } else { Write-Host 'Existing database found, leaving it untouched.' }; npm run build"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; npm ci"
 
+      - name: Initialize database if missing
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; if (!(Test-Path 'src\database\library.db')) { Write-Host 'No existing database found, initializing...'; npm run init-db } else { Write-Host 'Existing database found, leaving it untouched.' }"
+
+      - name: Build application
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.WINDOWS_SERVER_HOST }}
+          username: ${{ secrets.WINDOWS_SERVER_USER }}
+          password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
+          port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; npm run build"
+
+  start:
+    needs: deploy-build
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Start application
         uses: appleboy/ssh-action@v1.0.0
         with:
