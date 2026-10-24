@@ -562,7 +562,7 @@ export function BorrowingTable({
                           {borrowing.tanggal_kembali}
                           {overdue && ' ⚠'}
                         </span>
-                        {(borrowing.extend_count ?? 0) > 0 && (
+                        {!readOnly && (borrowing.extend_count ?? 0) > 0 && (
                           <button
                             type="button"
                             onClick={(e) => {
