@@ -94,6 +94,7 @@ export default function Home() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[]>([]);
   const deletePromiseRef = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
+  const excelImportInputRef = useRef<HTMLInputElement>(null);
   const [historyBorrowing, setHistoryBorrowing] = useState<Borrowing | null>(null);
   const [historyData, setHistoryData] = useState<BorrowingHistory[]>([]);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -767,18 +768,22 @@ return (
                       </DialogContent>
                     </Dialog>
 
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls"
-                        onChange={handleExcelImport}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <Button variant="outline" className="w-full md:w-auto">
-                        <Upload className="h-4 w-4" />
-                        Import Excel
-                      </Button>
-                    </div>
+                    <input
+                      ref={excelImportInputRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleExcelImport}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => excelImportInputRef.current?.click()}
+                      className="w-full md:w-auto"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Import Excel
+                    </Button>
 
 
                     <Button variant="outline" onClick={handleExcelExport} className="w-full md:w-auto">
@@ -791,7 +796,7 @@ return (
                       <select
                         value={reportAcademicYear}
                         onChange={(e) => setReportAcademicYear(e.target.value)}
-                        className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="h-9 cursor-pointer rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       >
                         {getAcademicYearOptions().map((year) => (
                           <option key={year} value={year}>
