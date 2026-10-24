@@ -135,7 +135,6 @@ export default function Home() {
       if (searchTerm) params.set('search', searchTerm);
       if (isPublicPage) {
         params.set('status', 'active');
-        params.set('days', '30');
       }
       const url = params.toString() ? `/api/borrowings?${params.toString()}` : '/api/borrowings';
       const response = await fetch(url);

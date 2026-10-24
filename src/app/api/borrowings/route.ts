@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
     const days = searchParams.get('days');
-    const daysLimit = days ? parseInt(days, 10) : undefined;
+    const configuredPublicDays = Number.parseInt(dbOperations.getSetting('root_view_days') || '30', 10);
+    const daysLimit = status === 'active'
+      ? (Number.isInteger(configuredPublicDays) && configuredPublicDays > 0 ? configuredPublicDays : 30)
+      : days ? parseInt(days, 10) : undefined;
 
     let borrowings;
     if (search) {
