@@ -47,7 +47,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     } catch {
       console.error('Logout failed');
     } finally {
-      router.push('/login');
+      router.push('/');
       router.refresh();
     }
   };

@@ -40,7 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isOverdue } from '@/lib/date-utils';
-import { Plus, Search, Upload, Download, LogOut, Shield } from 'lucide-react';
+import { Plus, Search, Upload, Download, Shield } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const getCurrentAcademicYear = () => {
@@ -525,17 +525,6 @@ export default function Home() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      router.push('/login');
-      router.refresh();
-    }
-  };
-
   const handleMonthlyReportExport = async () => {
     try {
       const response = await fetch(`/api/excel/export?type=monthly&academicYear=${encodeURIComponent(reportAcademicYear)}`);
@@ -766,10 +755,6 @@ return (
                 <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)} className="flex-1 justify-center gap-2 sm:flex-none">
                   <Shield className="h-4 w-4" />
                   Ganti Password
-                </Button>
-                <Button variant="outline" onClick={handleLogout} className="flex-1 justify-center gap-2 sm:flex-none">
-                  <LogOut className="h-4 w-4" />
-                  Logout
                 </Button>
               </div>
             </div>
