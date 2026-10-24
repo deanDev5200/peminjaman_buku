@@ -188,7 +188,7 @@ function MultiSelectFilter({
             <button
               type="button"
               onClick={() => onChange(allSelected ? [] : [...options])}
-              className="text-[11px] font-medium text-primary hover:underline"
+              className="cursor-pointer text-[11px] font-medium text-primary hover:underline"
             >
               {allSelected ? 'Hapus semua' : 'Pilih semua'}
             </button>
@@ -196,7 +196,7 @@ function MultiSelectFilter({
               <button
                 type="button"
                 onClick={() => onChange([])}
-                className="text-[11px] text-muted-foreground hover:underline"
+                className="cursor-pointer text-[11px] text-muted-foreground hover:underline"
               >
                 Bersihkan
               </button>
@@ -210,7 +210,7 @@ function MultiSelectFilter({
                   key={option}
                   type="button"
                   onClick={() => toggleValue(option)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted"
                 >
                   <Checkbox
                     checked={checked}
@@ -397,7 +397,7 @@ export function BorrowingTable({
                   <button
                     type="button"
                     onClick={() => handleRemoveFilterValue(key, value)}
-                    className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                    className="cursor-pointer rounded-full p-0.5 hover:bg-muted-foreground/20"
                     aria-label={`Hapus filter ${value}`}
                   >
                     <X className="h-3 w-3" />
@@ -412,7 +412,7 @@ export function BorrowingTable({
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="cursor-pointer bg-muted/50">
               {!readOnly && <TableHead className="min-w-10 py-2 px-3 text-xs font-semibold">
                 <Checkbox
                   checked={allSelected}
@@ -541,7 +541,7 @@ export function BorrowingTable({
                             e.stopPropagation();
                             onShowBorrowerHistory?.(borrowing);
                           }}
-                          className="font-medium text-blue-600 hover:underline"
+                          className="cursor-pointer font-medium text-blue-600 hover:underline"
                           title="Lihat riwayat peminjam"
                         >
                           {borrowing.nis === 0 ? '-' : borrowing.nis}
@@ -562,14 +562,14 @@ export function BorrowingTable({
                           {borrowing.tanggal_kembali}
                           {overdue && ' ⚠'}
                         </span>
-                        {(borrowing.extend_count ?? 0) > 0 && (
+                        {!readOnly && (borrowing.extend_count ?? 0) > 0 && (
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               onShowHistory?.(borrowing);
                             }}
-                            className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 hover:bg-amber-200"
+                            className="inline-flex w-fit cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 hover:bg-amber-200"
                             title="Lihat riwayat perpanjangan"
                           >
                             <RotateCcw className="h-3 w-3" />

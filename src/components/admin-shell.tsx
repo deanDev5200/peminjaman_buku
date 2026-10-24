@@ -36,7 +36,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 min-w-0 lg:ml-0">
           <div className="lg:hidden sticky top-0 z-30 flex items-center border-b bg-card px-4 py-2">
             <button
-              className="p-2 rounded-md hover:bg-accent"
+              className="p-2 rounded-md hover:bg-accent cursor-pointer"
               onClick={() => setIsOpen(true)}
               aria-label="Buka menu navigasi"
             >

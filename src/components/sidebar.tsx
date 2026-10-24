@@ -20,10 +20,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutGrid, Settings as SettingsIcon, Shield, History, LogOut, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LayoutGrid, Settings as SettingsIcon, Shield, History, LogOut, ChevronLeft, KeyRound } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -40,6 +45,60 @@ const NAV_ITEMS = [
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Semua kolom harus diisi.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password baru minimal 6 karakter.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError('');
+
+    try {
+      const response = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        setPasswordError(result.error || 'Gagal mengubah password.');
+        return;
+      }
+
+      setIsPasswordDialogOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Password berhasil diubah. Silakan login kembali dengan password baru.');
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordError('Gagal mengubah password.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -47,7 +106,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     } catch {
       console.error('Logout failed');
     } finally {
-      router.push('/login');
+      router.push('/');
       router.refresh();
     }
   };
@@ -66,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Image src="/library_logo.png" alt="Library Logo" width={32} height={32} className="h-8 w-8 object-contain" />
           </div>
           <button
-            className="lg:hidden p-2 rounded-md hover:bg-accent"
+            className="lg:hidden p-2 rounded-md hover:bg-accent cursor-pointer"
             onClick={onClose}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -80,7 +139,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={href}
                 href={href}
                 onClick={onClose}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ${
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium cursor-pointer hover:bg-accent hover:text-accent-foreground ${
                   isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
                 }`}
               >
@@ -92,14 +151,77 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
         <div className="border-t p-4">
           <button
+            onClick={() => {
+              onClose();
+              setPasswordError('');
+              setIsPasswordDialogOpen(true);
+            }}
+            className="mb-1 flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground cursor-pointer hover:bg-accent hover:text-accent-foreground"
+          >
+            <KeyRound className="h-5 w-5" />
+            Ganti Password
+          </button>
+          <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground cursor-pointer hover:bg-accent hover:text-accent-foreground"
           >
             <LogOut className="h-5 w-5" />
             Logout
           </button>
         </div>
       </aside>
+
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ubah Password Aplikasi</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Password saat ini</label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Masukkan password lama"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Password baru</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Minimal 6 karakter"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Konfirmasi password baru</label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Ketik ulang password baru"
+              />
+            </div>
+
+            {passwordError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {passwordError}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button onClick={handlePasswordChange} disabled={passwordLoading}>
+                {passwordLoading ? 'Menyimpan...' : 'Simpan Password'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile sidebar overlay */}
       {isOpen && (
