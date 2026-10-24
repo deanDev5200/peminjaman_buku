@@ -132,3 +132,20 @@ export const isValidDateFormat = (dateString: string): boolean => {
     return false;
   }
 };
+
+export const isDateWithinRange = (
+  dateString: string,
+  startDate: string,
+  endDate: string
+): boolean => {
+  const date = parse(dateString, 'dd/MM/yyyy', new Date());
+  const start = parse(startDate, 'yyyy-MM-dd', new Date());
+  const end = parse(endDate, 'yyyy-MM-dd', new Date());
+
+  if (!isValid(date) || !isValid(start) || !isValid(end)) {
+    return false;
+  }
+
+  const value = startOfDay(date).getTime();
+  return value >= startOfDay(start).getTime() && value <= startOfDay(end).getTime();
+};

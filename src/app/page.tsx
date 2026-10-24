@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { isOverdue } from '@/lib/date-utils';
+import { isDateWithinRange, isOverdue } from '@/lib/date-utils';
 import { Plus, Search, Upload, Download } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
@@ -195,6 +195,13 @@ export default function Home() {
     const kelasValues = toFilterArray(filters.kelas);
     if (kelasValues.length > 0) {
       filtered = filtered.filter((b) => kelasValues.includes(b.kelas));
+    }
+    const startDate = toFilterArray(filters.tanggal_pinjam_from)[0];
+    const endDate = toFilterArray(filters.tanggal_pinjam_to)[0];
+    if (startDate && endDate) {
+      filtered = filtered.filter((borrowing) =>
+        isDateWithinRange(borrowing.tanggal_pinjam, startDate, endDate)
+      );
     }
 
     if (sortField) {
