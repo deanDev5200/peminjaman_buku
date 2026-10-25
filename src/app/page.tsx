@@ -658,6 +658,9 @@ export default function Home() {
                   itemsPerPage={itemsPerPage}
                   onItemsPerPageChange={handleItemsPerPageChange}
                   totalItems={filteredBorrowings.length}
+                  onSort={handleSort}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
                 />
               )}
             </CardContent>
