@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Trash2, ArrowUp, ArrowDown, RotateCcw, X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -474,7 +474,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Nama
-                  {sortField === 'nama' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nama' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -483,7 +485,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   NIS
-                  {sortField === 'nis' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nis' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -492,7 +496,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Kelas
-                  {sortField === 'kelas' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'kelas' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -501,7 +507,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Nama Buku
-                  {sortField === 'nama_buku' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nama_buku' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -510,7 +518,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Jenis
-                  {sortField === 'jenis_buku' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'jenis_buku' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead className="hidden min-w-20 py-2 px-3 text-xs font-semibold md:table-cell">Kode</TableHead>
@@ -520,7 +530,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Jml
-                  {sortField === 'jumlah' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'jumlah' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -529,7 +541,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Tgl Pinjam
-                  {sortField === 'tanggal_pinjam' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'tanggal_pinjam' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -538,7 +552,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Tgl Kembali
-                  {sortField === 'tanggal_kembali' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'tanggal_kembali' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -547,7 +563,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Status
-                  {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'status' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               {!readOnly && <TableHead className="sticky right-0 z-20 min-w-35 bg-muted/50 py-2 px-3 text-right text-xs font-semibold shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.4)]">Aksi</TableHead>}
