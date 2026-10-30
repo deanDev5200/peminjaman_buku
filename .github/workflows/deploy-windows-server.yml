@@ -52,7 +52,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "npm install -g pm2; npm install -g pm2-windows-startup"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (Get-Command pm2 -ErrorAction SilentlyContinue) { Write-Host 'PM2 is already installed; skipping installation.' } else { npm install -g pm2; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm install -g pm2-windows-startup; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }"
 
   deploy-build:
     needs: prepare-server
