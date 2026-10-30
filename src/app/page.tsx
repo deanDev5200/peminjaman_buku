@@ -230,6 +230,12 @@ export default function Home() {
   const startIndex = (validCurrentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedBorrowings = filteredBorrowings.slice(startIndex, endIndex);
+  const selectableBorrowingIds = useMemo(
+    () => filteredBorrowings.flatMap((borrowing) =>
+      borrowing.id === undefined ? [] : [borrowing.id]
+    ),
+    [filteredBorrowings]
+  );
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -1064,7 +1070,9 @@ return (
                   </div>
                 ) : (
                   <BorrowingTable
+                    key={JSON.stringify([searchTerm, filters])}
                     borrowings={paginatedBorrowings}
+                    selectableBorrowingIds={selectableBorrowingIds}
                     onEdit={handleEdit}
                     onBulkDelete={handleBulkDelete}
                     onReturn={handleReturn}

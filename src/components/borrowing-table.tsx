@@ -47,6 +47,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface BorrowingTableProps {
   borrowings: Borrowing[];
+  selectableBorrowingIds?: number[];
   onEdit?: (borrowing: Borrowing) => void;
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
@@ -231,6 +232,7 @@ function MultiSelectFilter({
 
 export function BorrowingTable({ 
   borrowings, 
+  selectableBorrowingIds,
   onEdit, 
   onBulkDelete,
   onReturn, 
@@ -253,10 +255,13 @@ export function BorrowingTable({
   filters = {}
 }: BorrowingTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const allSelectableIds = selectableBorrowingIds ?? borrowings.flatMap((borrowing) =>
+    borrowing.id === undefined ? [] : [borrowing.id]
+  );
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(borrowings.map(b => b.id!)));
+      setSelectedIds(new Set(allSelectableIds));
     } else {
       setSelectedIds(new Set());
     }
@@ -273,10 +278,10 @@ export function BorrowingTable({
   };
 
   const handleBulkDelete = async () => {
-    if (visibleSelectedIds.size === 0 || !onBulkDelete) return;
+    if (selectedInScopeIds.length === 0 || !onBulkDelete) return;
 
     try {
-      await onBulkDelete(Array.from(visibleSelectedIds));
+      await onBulkDelete(selectedInScopeIds);
       setSelectedIds(new Set());
     } catch {
       // Keep current selection when deletion fails.
@@ -337,13 +342,9 @@ export function BorrowingTable({
     }
   }
 
-  const visibleSelectedIds = new Set(
-    borrowings
-      .map((borrowing) => borrowing.id)
-      .filter((id): id is number => id !== undefined && selectedIds.has(id))
-  );
-  const allSelected = borrowings.length > 0 && visibleSelectedIds.size === borrowings.length;
-  const someSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < borrowings.length;
+  const selectedInScopeIds = allSelectableIds.filter((id) => selectedIds.has(id));
+  const allSelected = allSelectableIds.length > 0 && selectedInScopeIds.length === allSelectableIds.length;
+  const someSelected = selectedInScopeIds.length > 0 && !allSelected;
 
   return (
     <div className="space-y-3">
@@ -440,7 +441,7 @@ export function BorrowingTable({
             </div>
           )}
 
-          {selectedIds.size > 0 && (
+          {selectedInScopeIds.length > 0 && (
             <div className="flex justify-end border-t pt-2">
               <Button
                 variant="destructive"
@@ -449,7 +450,7 @@ export function BorrowingTable({
                 className="h-8 text-xs"
               >
                 <Trash2 className="h-3 w-3 mr-1" />
-                Hapus {selectedIds.size} Data
+                Hapus {selectedInScopeIds.length} Data
               </Button>
             </div>
           )}
