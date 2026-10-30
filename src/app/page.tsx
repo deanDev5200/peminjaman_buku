@@ -39,7 +39,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { isOverdue } from '@/lib/date-utils';
+import { isDateWithinRange, isOverdue } from '@/lib/date-utils';
 import { Plus, Search, Upload, Download } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
@@ -196,6 +196,13 @@ export default function Home() {
     if (kelasValues.length > 0) {
       filtered = filtered.filter((b) => kelasValues.includes(b.kelas));
     }
+    const startDate = toFilterArray(filters.tanggal_pinjam_from)[0];
+    const endDate = toFilterArray(filters.tanggal_pinjam_to)[0];
+    if (startDate && endDate) {
+      filtered = filtered.filter((borrowing) =>
+        isDateWithinRange(borrowing.tanggal_pinjam, startDate, endDate)
+      );
+    }
 
     if (sortField) {
       filtered.sort((a, b) => {
@@ -223,6 +230,12 @@ export default function Home() {
   const startIndex = (validCurrentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedBorrowings = filteredBorrowings.slice(startIndex, endIndex);
+  const selectableBorrowingIds = useMemo(
+    () => filteredBorrowings.flatMap((borrowing) =>
+      borrowing.id === undefined ? [] : [borrowing.id]
+    ),
+    [filteredBorrowings]
+  );
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -651,6 +664,9 @@ export default function Home() {
                   itemsPerPage={itemsPerPage}
                   onItemsPerPageChange={handleItemsPerPageChange}
                   totalItems={filteredBorrowings.length}
+                  onSort={handleSort}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
                 />
               )}
             </CardContent>
@@ -1054,7 +1070,9 @@ return (
                   </div>
                 ) : (
                   <BorrowingTable
+                    key={JSON.stringify([searchTerm, filters])}
                     borrowings={paginatedBorrowings}
+                    selectableBorrowingIds={selectableBorrowingIds}
                     onEdit={handleEdit}
                     onBulkDelete={handleBulkDelete}
                     onReturn={handleReturn}

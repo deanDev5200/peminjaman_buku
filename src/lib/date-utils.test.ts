@@ -25,6 +25,7 @@ import {
   calculateReturnDateFromSettings,
   formatDate,
   getCurrentDate,
+  isDateWithinRange,
   isOverdue,
   isValidDateFormat,
 } from './date-utils';
@@ -161,5 +162,22 @@ describe('isValidDateFormat', () => {
     expect(isValidDateFormat('2026-09-25')).toBe(false);
     expect(isValidDateFormat('not-a-date')).toBe(false);
     expect(isValidDateFormat('')).toBe(false);
+  });
+});
+
+describe('isDateWithinRange', () => {
+  it('includes both range endpoints', () => {
+    expect(isDateWithinRange('01/09/2026', '2026-09-01', '2026-09-30')).toBe(true);
+    expect(isDateWithinRange('30/09/2026', '2026-09-01', '2026-09-30')).toBe(true);
+  });
+
+  it('excludes dates outside the range', () => {
+    expect(isDateWithinRange('31/08/2026', '2026-09-01', '2026-09-30')).toBe(false);
+    expect(isDateWithinRange('01/10/2026', '2026-09-01', '2026-09-30')).toBe(false);
+  });
+
+  it('rejects invalid dates or ranges', () => {
+    expect(isDateWithinRange('invalid', '2026-09-01', '2026-09-30')).toBe(false);
+    expect(isDateWithinRange('15/09/2026', '2026-09-31', '2026-09-30')).toBe(false);
   });
 });

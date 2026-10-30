@@ -21,6 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { format, isValid, parse } from 'date-fns';
 import { Borrowing } from '@/lib/types';
 import { isOverdue } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
@@ -34,7 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronLeft, ChevronRight, Trash2, ArrowUpDown, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Trash2, ArrowUp, ArrowDown, RotateCcw, X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -46,6 +47,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface BorrowingTableProps {
   borrowings: Borrowing[];
+  selectableBorrowingIds?: number[];
   onEdit?: (borrowing: Borrowing) => void;
   onBulkDelete?: (ids: number[]) => Promise<void>;
   onReturn?: (id: number) => void;
@@ -154,7 +156,7 @@ function MultiSelectFilter({
   const allSelected = options.length > 0 && selected.length === options.length;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0">
       <Button
         type="button"
         variant="outline"
@@ -162,7 +164,7 @@ function MultiSelectFilter({
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          'h-8 min-w-32 justify-between gap-2 text-xs font-normal',
+          'h-8 min-w-0 w-full justify-between gap-2 text-xs font-normal',
           selected.length > 0 && 'border-primary/50 bg-primary/5',
           triggerClassName
         )}
@@ -230,6 +232,7 @@ function MultiSelectFilter({
 
 export function BorrowingTable({ 
   borrowings, 
+  selectableBorrowingIds,
   onEdit, 
   onBulkDelete,
   onReturn, 
@@ -252,10 +255,13 @@ export function BorrowingTable({
   filters = {}
 }: BorrowingTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const allSelectableIds = selectableBorrowingIds ?? borrowings.flatMap((borrowing) =>
+    borrowing.id === undefined ? [] : [borrowing.id]
+  );
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(borrowings.map(b => b.id!)));
+      setSelectedIds(new Set(allSelectableIds));
     } else {
       setSelectedIds(new Set());
     }
@@ -272,10 +278,10 @@ export function BorrowingTable({
   };
 
   const handleBulkDelete = async () => {
-    if (visibleSelectedIds.size === 0 || !onBulkDelete) return;
+    if (selectedInScopeIds.length === 0 || !onBulkDelete) return;
 
     try {
-      await onBulkDelete(Array.from(visibleSelectedIds));
+      await onBulkDelete(selectedInScopeIds);
       setSelectedIds(new Set());
     } catch {
       // Keep current selection when deletion fails.
@@ -293,6 +299,10 @@ export function BorrowingTable({
   };
 
   const handleRemoveFilterValue = (key: string, value: string) => {
+    if (key === 'tanggal_pinjam_range') {
+      onFilter?.({ ...filters, tanggal_pinjam_from: [], tanggal_pinjam_to: [] });
+      return;
+    }
     const current = toSelectedArray(filters[key]);
     onFilter?.({ ...filters, [key]: current.filter((v) => v !== value) });
   };
@@ -311,37 +321,54 @@ export function BorrowingTable({
   const selectedStatus = toSelectedArray(filters.status);
   const selectedJenis = toSelectedArray(filters.jenis_buku);
   const selectedKelas = toSelectedArray(filters.kelas);
-  const activeFilterCount = selectedStatus.length + selectedJenis.length + selectedKelas.length;
+  const startDate = toSelectedArray(filters.tanggal_pinjam_from)[0] ?? '';
+  const endDate = toSelectedArray(filters.tanggal_pinjam_to)[0] ?? '';
+  const hasDateRangeInput = Boolean(startDate || endDate);
+  const isDateRangeActive = Boolean(startDate && endDate);
+  const activeFilterCount = selectedStatus.length + selectedJenis.length + selectedKelas.length + Number(hasDateRangeInput);
   const activeFilterChips: { key: string; value: string }[] = [
     ...selectedStatus.map((value) => ({ key: 'status', value })),
     ...selectedJenis.map((value) => ({ key: 'jenis_buku', value })),
     ...selectedKelas.map((value) => ({ key: 'kelas', value })),
   ];
+  if (isDateRangeActive) {
+    const start = parse(startDate, 'yyyy-MM-dd', new Date());
+    const end = parse(endDate, 'yyyy-MM-dd', new Date());
+    if (isValid(start) && isValid(end)) {
+      activeFilterChips.push({
+        key: 'tanggal_pinjam_range',
+        value: `Tanggal pinjam: ${format(start, 'dd/MM/yyyy')} – ${format(end, 'dd/MM/yyyy')}`,
+      });
+    }
+  }
 
-  const visibleSelectedIds = new Set(
-    borrowings
-      .map((borrowing) => borrowing.id)
-      .filter((id): id is number => id !== undefined && selectedIds.has(id))
-  );
-  const allSelected = borrowings.length > 0 && visibleSelectedIds.size === borrowings.length;
-  const someSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < borrowings.length;
+  const selectedInScopeIds = allSelectableIds.filter((id) => selectedIds.has(id));
+  const allSelected = allSelectableIds.length > 0 && selectedInScopeIds.length === allSelectableIds.length;
+  const someSelected = selectedInScopeIds.length > 0 && !allSelected;
 
   return (
     <div className="space-y-3">
       {/* Filters */}
       {!readOnly && (
-        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-          <div className="flex flex-wrap gap-2 items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Filter:</span>
-            </div>
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 sm:p-4">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              disabled={activeFilterCount === 0}
+              className="h-8 shrink-0 text-xs"
+            >
+              Reset Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </Button>
+          </div>
 
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             <MultiSelectFilter
               label="Status"
               options={STATUS_OPTIONS}
               selected={selectedStatus}
               onChange={(value) => handleFilterChange('status', value)}
-              triggerClassName="w-36"
             />
 
             <MultiSelectFilter
@@ -349,7 +376,6 @@ export function BorrowingTable({
               options={JENIS_BUKU_OPTIONS}
               selected={selectedJenis}
               onChange={(value) => handleFilterChange('jenis_buku', value)}
-              triggerClassName="w-36"
             />
 
             <MultiSelectFilter
@@ -357,36 +383,44 @@ export function BorrowingTable({
               options={KELAS_OPTIONS}
               selected={selectedKelas}
               onChange={(value) => handleFilterChange('kelas', value)}
-              triggerClassName="w-36"
             />
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearFilters}
-              disabled={activeFilterCount === 0}
-              className="h-8 text-xs"
-            >
-              Reset Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-            </Button>
-
-            <div className="flex-1" />
-
-            {selectedIds.size > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleBulkDelete}
-                className="h-8 text-xs"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Hapus {selectedIds.size} Data
-              </Button>
-            )}
           </div>
 
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              <span>Tanggal pinjam dari</span>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(event) =>
+                  handleFilterChange('tanggal_pinjam_from', event.target.value ? [event.target.value] : [])
+                }
+                className="h-8 w-full cursor-pointer rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted-foreground">
+              <span>Tanggal pinjam sampai</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(event) =>
+                  handleFilterChange('tanggal_pinjam_to', event.target.value ? [event.target.value] : [])
+                }
+                className="h-8 w-full cursor-pointer rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+          </div>
+
+          {hasDateRangeInput && !isDateRangeActive && (
+            <p className="text-xs text-muted-foreground">
+              Pilih tanggal mulai dan sampai untuk menerapkan filter tanggal.
+            </p>
+          )}
+
           {activeFilterChips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 border-t pt-2">
               {activeFilterChips.map(({ key, value }) => (
                 <Badge
                   key={`${key}-${value}`}
@@ -404,6 +438,20 @@ export function BorrowingTable({
                   </button>
                 </Badge>
               ))}
+            </div>
+          )}
+
+          {selectedInScopeIds.length > 0 && (
+            <div className="flex justify-end border-t pt-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                className="h-8 text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Hapus {selectedInScopeIds.length} Data
+              </Button>
             </div>
           )}
         </div>
@@ -427,7 +475,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Nama
-                  {sortField === 'nama' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nama' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -436,7 +486,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   NIS
-                  {sortField === 'nis' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nis' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -445,7 +497,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Kelas
-                  {sortField === 'kelas' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'kelas' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -454,7 +508,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Nama Buku
-                  {sortField === 'nama_buku' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'nama_buku' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -463,7 +519,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Jenis
-                  {sortField === 'jenis_buku' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'jenis_buku' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead className="hidden min-w-20 py-2 px-3 text-xs font-semibold md:table-cell">Kode</TableHead>
@@ -473,7 +531,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Jml
-                  {sortField === 'jumlah' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'jumlah' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -482,7 +542,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Tgl Pinjam
-                  {sortField === 'tanggal_pinjam' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'tanggal_pinjam' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -491,7 +553,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Tgl Kembali
-                  {sortField === 'tanggal_kembali' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'tanggal_kembali' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               <TableHead 
@@ -500,7 +564,9 @@ export function BorrowingTable({
               >
                 <div className="flex items-center gap-1">
                   Status
-                  {sortField === 'status' && <ArrowUpDown className="h-3 w-3" />}
+                  {sortField === 'status' && (sortDirection === 'asc'
+                    ? <ArrowUp className="h-3 w-3" />
+                    : <ArrowDown className="h-3 w-3" />)}
                 </div>
               </TableHead>
               {!readOnly && <TableHead className="sticky right-0 z-20 min-w-35 bg-muted/50 py-2 px-3 text-right text-xs font-semibold shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.4)]">Aksi</TableHead>}
