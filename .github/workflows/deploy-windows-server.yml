@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
 
@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
           port: ${{ secrets.WINDOWS_SERVER_PORT || 22 }}
-          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (!(Test-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}')) { New-Item -ItemType Directory -Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' -Force; cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; git clone https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git . }; New-Item -ItemType Directory -Path (Join-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' 'logs') -Force"
+          script: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "if (!(Test-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}')) { New-Item -ItemType Directory -Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' -Force; cd '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}'; git clone https://github.com/${{ github.repository }}.git . }; New-Item -ItemType Directory -Path (Join-Path '${{ secrets.WINDOWS_DEPLOY_PATH || 'C:\peminjaman_buku' }}' 'logs') -Force"
 
       - name: Install PM2 globally
         uses: appleboy/ssh-action@v1.0.0
